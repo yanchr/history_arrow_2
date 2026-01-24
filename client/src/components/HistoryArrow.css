@@ -1,0 +1,174 @@
+.history-arrow-container {
+  position: relative;
+  padding: 2rem 0;
+}
+
+.timeline-wrapper {
+  position: relative;
+  height: 200px;
+  margin: 2rem 0;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(99, 102, 241, 0.03) 50%,
+    transparent 100%
+  );
+  border-radius: var(--radius-lg);
+}
+
+.timeline-content {
+  position: relative;
+  height: 100%;
+  padding: 0 60px;
+  transition: transform 0.3s ease;
+}
+
+/* Arrow Line */
+.arrow-line {
+  position: absolute;
+  top: 50%;
+  left: 40px;
+  right: 40px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+}
+
+.arrow-body {
+  flex: 1;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--color-timeline) 0%,
+    var(--color-accent) 100%
+  );
+  border-radius: 2px;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+.arrow-head {
+  width: 30px;
+  height: 30px;
+  color: var(--color-accent);
+  margin-left: -5px;
+  filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.5));
+}
+
+.arrow-head svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Timeline Ticks */
+.timeline-ticks {
+  position: absolute;
+  top: 0;
+  left: 60px;
+  right: 60px;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.timeline-tick {
+  position: absolute;
+  top: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tick-mark {
+  width: 2px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 1px;
+}
+
+.tick-label {
+  position: absolute;
+  top: calc(50% + 25px);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  transform: rotate(-45deg);
+  transform-origin: top left;
+}
+
+/* Events Layer */
+.events-layer {
+  position: absolute;
+  top: 0;
+  left: 60px;
+  right: 60px;
+  bottom: 0;
+}
+
+/* Timeline Legend */
+.timeline-legend {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.legend-point {
+  width: 12px;
+  height: 12px;
+  background: var(--color-point);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+.legend-span {
+  width: 30px;
+  height: 12px;
+  background: var(--color-span);
+  border-radius: 6px;
+  border: 2px solid var(--color-accent);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .timeline-wrapper {
+    height: 160px;
+  }
+
+  .timeline-content {
+    padding: 0 40px;
+  }
+
+  .arrow-line {
+    left: 20px;
+    right: 20px;
+  }
+
+  .timeline-ticks {
+    left: 40px;
+    right: 40px;
+  }
+
+  .events-layer {
+    left: 40px;
+    right: 40px;
+  }
+
+  .tick-label {
+    font-size: 0.65rem;
+  }
+
+  .timeline-legend {
+    gap: 1rem;
+  }
+}
