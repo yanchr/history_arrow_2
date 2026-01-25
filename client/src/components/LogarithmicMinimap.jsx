@@ -39,7 +39,7 @@ function LogarithmicMinimap({
   const eventDots = events.map(event => {
     const yearsAgo = eventToYearsAgo(event)
     const position = yearToLogPosition(yearsAgo, totalMin, totalMax)
-    return { id: event.id, position, title: event.title }
+    return { id: event.id, position, title: event.title, priority: event.priority || 3 }
   })
 
   // Handle mouse down on viewfinder
@@ -336,7 +336,7 @@ function LogarithmicMinimap({
           {eventDots.map(dot => (
             <div
               key={dot.id}
-              className="minimap-event-dot"
+              className={`minimap-event-dot priority-${dot.priority}`}
               style={{ left: `${dot.position}%` }}
               title={dot.title}
             />

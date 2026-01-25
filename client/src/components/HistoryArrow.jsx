@@ -5,6 +5,7 @@ import ClusterIndicator from './ClusterIndicator'
 import LogarithmicMinimap from './LogarithmicMinimap'
 import {
   yearToLinearPosition,
+  linearPositionToYear,
   getLinearTicks,
   formatYearsAgoShort,
   eventToYearsAgo,
@@ -21,15 +22,20 @@ import {
 } from '../utils/clusterUtils'
 import './HistoryArrow.css'
 
+// Current year for calculating calendar years
+const CURRENT_YEAR = new Date().getFullYear()
+
 function HistoryArrow({ events, selectedEvent, onEventClick }) {
   const [hoveredEvent, setHoveredEvent] = useState(null)
   const [hoveredCluster, setHoveredCluster] = useState(null)
+  const [timelineHover, setTimelineHover] = useState({ active: false, x: 0, yearsAgo: 0 })
   // View state: years ago for the visible range
   // viewStart = closer to present (smaller years ago)
   // viewEnd = further in past (larger years ago)
   const [viewStart, setViewStart] = useState(1) // 1 year ago
   const [viewEnd, setViewEnd] = useState(5e9) // 5 billion years ago
   const timelineRef = useRef(null)
+  const eventsLayerRef = useRef(null)
 
   // Calculate the overall bounds from events
   const eventBounds = useMemo(() => {
@@ -165,6 +171,51 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
     setViewEnd(eventBounds.max)
   }, [eventBounds])
 
+  // Handle mouse move over timeline to show current position
+  const handleTimelineMouseMove = useCallback((e) => {
+    if (!eventsLayerRef.current) return
+    
+    const rect = eventsLayerRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const percentage = (x / rect.width) * 100
+    
+    // Convert position to years ago
+    const yearsAgo = linearPositionToYear(percentage, viewStart, viewEnd)
+    
+    setTimelineHover({
+      active: true,
+      x: e.clientX - rect.left + 60, // Offset for the events layer margin
+      yearsAgo
+    })
+  }, [viewStart, viewEnd])
+
+  const handleTimelineMouseLeave = useCallback(() => {
+    setTimelineHover(prev => ({ ...prev, active: false }))
+  }, [])
+
+  // Format the hover position as year or "years ago"
+  const formatHoverTime = (yearsAgo) => {
+    // If within the last ~2026 years (after year 0), show the calendar year
+    if (yearsAgo <= CURRENT_YEAR) {
+      const year = Math.round(CURRENT_YEAR - yearsAgo)
+      if (year < 0) {
+        return `${Math.abs(year)} BCE`
+      }
+      return `${year} CE`
+    }
+    
+    // Otherwise show "years ago" format
+    if (yearsAgo >= 1e9) {
+      return `${(yearsAgo / 1e9).toFixed(2)} billion years ago`
+    } else if (yearsAgo >= 1e6) {
+      return `${(yearsAgo / 1e6).toFixed(2)} million years ago`
+    } else if (yearsAgo >= 1e3) {
+      return `${(yearsAgo / 1e3).toFixed(1)}k years ago`
+    } else {
+      return `${Math.round(yearsAgo)} years ago`
+    }
+  }
+
   return (
     <div className="history-arrow-container">
       <div className="timeline-header">
@@ -215,7 +266,12 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
           </div>
 
           {/* Event Markers */}
-          <div className={`events-layer ${hoveredCluster ? 'has-hovered-cluster' : ''}`}>
+          <div 
+            ref={eventsLayerRef}
+            className={`events-layer ${hoveredCluster ? 'has-hovered-cluster' : ''}`}
+            onMouseMove={handleTimelineMouseMove}
+            onMouseLeave={handleTimelineMouseLeave}
+          >
             {positionedEvents.map(event => {
               const isInCluster = clusteredEventIds.has(event.id)
               const showLabel = shouldShowLabel(event, priorityThreshold, clusteredEventIds)
@@ -272,6 +328,21 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
               {formatYearsAgoShort(viewStart)} ago
             </span>
           </div>
+
+          {/* Hover time indicator */}
+          {timelineHover.active && (
+            <motion.div 
+              className="timeline-hover-indicator"
+              style={{ left: timelineHover.x }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
+            >
+              <div className="hover-line" />
+              <span className="hover-time">{formatHoverTime(timelineHover.yearsAgo)}</span>
+            </motion.div>
+          )}
         </motion.div>
 
       </div>
