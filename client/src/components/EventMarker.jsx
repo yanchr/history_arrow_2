@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import './EventMarker.css'
 
-function EventMarker({ event, onHover, isHovered }) {
+function EventMarker({ event, onHover, onClick, isHovered, isSelected }) {
   const { startPos, endPos, isSpan, title } = event
 
   const handleMouseEnter = (e) => {
@@ -16,13 +16,20 @@ function EventMarker({ event, onHover, isHovered }) {
     onHover(null)
   }
 
+  const handleClick = (e) => {
+    e.stopPropagation()
+    if (onClick) {
+      onClick(event)
+    }
+  }
+
   if (isSpan) {
     // Render as a span (range marker)
     const width = Math.max(endPos - startPos, 2)
 
     return (
       <motion.div
-        className={`event-span ${isHovered ? 'hovered' : ''}`}
+        className={`event-span ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''}`}
         style={{
           left: `${startPos}%`,
           width: `${width}%`
@@ -30,9 +37,11 @@ function EventMarker({ event, onHover, isHovered }) {
         onMouseEnter={handleMouseEnter}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
         initial={{ opacity: 0, scaleX: 0 }}
         animate={{ opacity: 1, scaleX: 1 }}
         whileHover={{ y: -2 }}
+        whileTap={{ scale: 0.98 }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
       >
         <div className="span-body">
@@ -48,14 +57,16 @@ function EventMarker({ event, onHover, isHovered }) {
   // Render as a point marker
   return (
     <motion.div
-      className={`event-point ${isHovered ? 'hovered' : ''}`}
+      className={`event-point ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''}`}
       style={{ left: `${startPos}%` }}
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
       initial={{ opacity: 0, scale: 0 }}
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ scale: 1.2 }}
+      whileTap={{ scale: 0.9 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
     >
       <div className="point-marker">

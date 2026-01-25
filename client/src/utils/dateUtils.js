@@ -2,6 +2,14 @@
  * Date utilities for timeline calculations and formatting
  */
 
+// Astronomical unit multipliers
+export const ASTRONOMICAL_UNITS = {
+  years: 1,
+  thousands: 1000,
+  millions: 1000000,
+  billions: 1000000000
+}
+
 /**
  * Calculate the percentage position of a date on the timeline
  */
@@ -15,6 +23,104 @@ export function getTimePosition(date, minDate, maxDate) {
 
   const position = ((dateTime - minTime) / range) * 100
   return Math.max(0, Math.min(100, position))
+}
+
+/**
+ * Parse astronomical input from form (value + unit) to total years ago
+ * @param {number|string} value - The numeric value
+ * @param {string} unit - One of: 'years', 'thousands', 'millions', 'billions'
+ * @returns {number} Total years ago
+ */
+export function parseAstronomicalInput(value, unit) {
+  const numValue = parseFloat(value)
+  if (isNaN(numValue) || numValue <= 0) return null
+  
+  const multiplier = ASTRONOMICAL_UNITS[unit] || 1
+  return Math.round(numValue * multiplier)
+}
+
+/**
+ * Convert years ago to value and unit for form display
+ * @param {number} yearsAgo 
+ * @returns {{value: number, unit: string}}
+ */
+export function yearsAgoToFormValues(yearsAgo) {
+  if (yearsAgo >= 1e9) {
+    return { value: yearsAgo / 1e9, unit: 'billions' }
+  }
+  if (yearsAgo >= 1e6) {
+    return { value: yearsAgo / 1e6, unit: 'millions' }
+  }
+  if (yearsAgo >= 1e3) {
+    return { value: yearsAgo / 1e3, unit: 'thousands' }
+  }
+  return { value: yearsAgo, unit: 'years' }
+}
+
+/**
+ * Format an event's date for display (handles both date types)
+ * @param {Object} event - The event object
+ * @param {boolean} isEnd - Whether to format the end date
+ * @returns {string}
+ */
+export function formatEventDate(event, isEnd = false) {
+  if (event.date_type === 'astronomical') {
+    const yearsAgo = isEnd ? event.astronomical_end_year : event.astronomical_start_year
+    if (!yearsAgo) return null
+    return formatYearsAgo(yearsAgo)
+  }
+  
+  const dateStr = isEnd ? event.end_date : event.start_date
+  if (!dateStr) return null
+  return formatDisplayDate(dateStr)
+}
+
+/**
+ * Format years ago as a human-readable string
+ * @param {number} yearsAgo 
+ * @returns {string}
+ */
+export function formatYearsAgo(yearsAgo) {
+  if (yearsAgo >= 1e9) {
+    const value = yearsAgo / 1e9
+    const formatted = value % 1 === 0 ? value.toString() : value.toFixed(2)
+    return `${formatted} billion years ago`
+  }
+  if (yearsAgo >= 1e6) {
+    const value = yearsAgo / 1e6
+    const formatted = value % 1 === 0 ? value.toString() : value.toFixed(1)
+    return `${formatted} million years ago`
+  }
+  if (yearsAgo >= 1e3) {
+    const value = yearsAgo / 1e3
+    const formatted = value % 1 === 0 ? value.toString() : value.toFixed(1)
+    return `${formatted} thousand years ago`
+  }
+  if (yearsAgo === 1) {
+    return '1 year ago'
+  }
+  return `${Math.round(yearsAgo)} years ago`
+}
+
+/**
+ * Format years ago as a short label (for timeline ticks)
+ * @param {number} yearsAgo 
+ * @returns {string}
+ */
+export function formatYearsAgoShort(yearsAgo) {
+  if (yearsAgo >= 1e9) {
+    const value = yearsAgo / 1e9
+    return value % 1 === 0 ? `${value}B` : `${value.toFixed(1)}B`
+  }
+  if (yearsAgo >= 1e6) {
+    const value = yearsAgo / 1e6
+    return value % 1 === 0 ? `${value}M` : `${value.toFixed(1)}M`
+  }
+  if (yearsAgo >= 1e3) {
+    const value = yearsAgo / 1e3
+    return value % 1 === 0 ? `${value}K` : `${value.toFixed(1)}K`
+  }
+  return `${Math.round(yearsAgo)}`
 }
 
 /**
@@ -154,6 +260,27 @@ export function validateDateRange(startDate, endDate) {
     }
     if (start >= end) {
       return { valid: false, error: 'End date must be after start date' }
+    }
+  }
+
+  return { valid: true, error: null }
+}
+
+/**
+ * Validate astronomical year range
+ * For astronomical dates, start should be GREATER than end (further in the past)
+ */
+export function validateAstronomicalRange(startYearsAgo, endYearsAgo) {
+  if (!startYearsAgo || startYearsAgo <= 0) {
+    return { valid: false, error: 'Start year must be a positive number' }
+  }
+
+  if (endYearsAgo !== null && endYearsAgo !== undefined) {
+    if (endYearsAgo <= 0) {
+      return { valid: false, error: 'End year must be a positive number' }
+    }
+    if (startYearsAgo <= endYearsAgo) {
+      return { valid: false, error: 'Start year must be greater than end year (further in the past)' }
     }
   }
 

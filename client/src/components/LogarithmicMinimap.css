@@ -1,0 +1,316 @@
+.logarithmic-minimap {
+  width: 100%;
+  padding: 1rem;
+  background: var(--color-surface, #1a1a2e);
+  border-radius: 12px;
+  margin-top: 1.5rem;
+}
+
+.minimap-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #a0a0a0);
+}
+
+.minimap-hint {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+/* Minimap with controls layout */
+.minimap-with-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.minimap-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Navigation buttons */
+.minimap-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--color-surface-hover, #252540);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 8px;
+  color: var(--color-text-secondary, #a0a0a0);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.minimap-nav-btn:hover {
+  background: var(--color-primary, #6366f1);
+  color: white;
+  border-color: var(--color-primary, #6366f1);
+  transform: scale(1.05);
+}
+
+.minimap-nav-btn:active {
+  transform: scale(0.95);
+}
+
+.minimap-nav-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Zoom controls positioned above minimap */
+.minimap-zoom-controls {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.minimap-zoom-controls .minimap-nav-btn {
+  width: 32px;
+  height: 28px;
+}
+
+.minimap-zoom-controls .minimap-nav-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.minimap-container {
+  position: relative;
+  height: 60px;
+  background: var(--color-background, #0f0f1a);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* Era backgrounds */
+.minimap-eras {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+}
+
+.minimap-era {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  opacity: 0.3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.2s ease;
+}
+
+.minimap-era:hover {
+  opacity: 0.5;
+}
+
+.era-label {
+  font-size: 0.65rem;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+/* Tick marks */
+.minimap-ticks {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.minimap-tick {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  transform: translateX(-50%);
+}
+
+.tick-line {
+  width: 1px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.tick-label {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+/* Event dots */
+.minimap-events {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.minimap-event-dot {
+  position: absolute;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  background: var(--color-primary, #6366f1);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 0 4px var(--color-primary, #6366f1);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.minimap-event-dot:hover {
+  transform: translateX(-50%) scale(1.5);
+  box-shadow: 0 0 8px var(--color-primary, #6366f1);
+}
+
+/* Viewfinder */
+.minimap-viewfinder {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(99, 102, 241, 0.2);
+  border: 2px solid var(--color-primary, #6366f1);
+  border-radius: 4px;
+  cursor: move;
+  display: flex;
+  z-index: 10;
+}
+
+.minimap-viewfinder.dragging {
+  background: rgba(99, 102, 241, 0.3);
+}
+
+.viewfinder-handle {
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 100%;
+  cursor: ew-resize;
+  z-index: 11;
+}
+
+.viewfinder-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 24px;
+  background: var(--color-primary, #6366f1);
+  border-radius: 2px;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.viewfinder-handle:hover::after {
+  opacity: 1;
+}
+
+.viewfinder-handle.left {
+  left: -6px;
+}
+
+.viewfinder-handle.right {
+  right: -6px;
+}
+
+.viewfinder-center {
+  flex: 1;
+  cursor: move;
+}
+
+/* Present marker */
+.minimap-present-marker {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.6rem;
+  color: var(--color-success, #10b981);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+/* View info */
+.minimap-view-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #a0a0a0);
+}
+
+.view-separator {
+  opacity: 0.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .minimap-container {
+    height: 50px;
+  }
+
+  .minimap-label {
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-start;
+  }
+
+  .era-label {
+    font-size: 0.55rem;
+  }
+
+  .tick-label {
+    font-size: 0.5rem;
+  }
+
+  .minimap-nav-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .minimap-nav-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .minimap-zoom-controls .minimap-nav-btn {
+    width: 28px;
+    height: 24px;
+  }
+
+  .minimap-zoom-controls .minimap-nav-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+}

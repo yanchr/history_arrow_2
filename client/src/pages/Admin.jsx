@@ -2,7 +2,16 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEvents } from '../hooks/useEvents'
 import EventForm from '../components/EventForm'
+import { formatEventDate } from '../utils/dateUtils'
 import './Admin.css'
+
+// Helper to check if an event is a span
+const isEventSpan = (event) => {
+  if (event.date_type === 'astronomical') {
+    return !!event.astronomical_end_year
+  }
+  return !!event.end_date
+}
 
 function Admin() {
   const { events, loading, error, createEvent, updateEvent, deleteEvent, refetch } = useEvents()
@@ -132,11 +141,19 @@ function Admin() {
           <span className="stat-label">Total Events</span>
         </div>
         <div className="stat-card">
-          <span className="stat-number">{events.filter(e => !e.end_date).length}</span>
+          <span className="stat-number">{events.filter(e => e.date_type === 'astronomical').length}</span>
+          <span className="stat-label">Astronomical</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-number">{events.filter(e => e.date_type === 'date').length}</span>
+          <span className="stat-label">Historical</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-number">{events.filter(e => !isEventSpan(e)).length}</span>
           <span className="stat-label">Point Events</span>
         </div>
         <div className="stat-card">
-          <span className="stat-number">{events.filter(e => e.end_date).length}</span>
+          <span className="stat-number">{events.filter(e => isEventSpan(e)).length}</span>
           <span className="stat-label">Time Spans</span>
         </div>
       </div>
@@ -176,60 +193,72 @@ function Admin() {
             <thead>
               <tr>
                 <th>Title</th>
-                <th>Type</th>
-                <th>Start Date</th>
-                <th>End Date</th>
+                <th>Date Type</th>
+                <th>Event Type</th>
+                <th>Start</th>
+                <th>End</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {events.map((event, index) => (
-                <motion.tr
-                  key={event.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <td>
-                    <div className="event-title-cell">
-                      <strong>{event.title}</strong>
-                      {event.description && (
-                        <span className="event-preview">{event.description.substring(0, 60)}...</span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`type-badge ${event.end_date ? 'span' : 'point'}`}>
-                      {event.end_date ? 'Span' : 'Point'}
-                    </span>
-                  </td>
-                  <td>{new Date(event.start_date).toLocaleDateString()}</td>
-                  <td>{event.end_date ? new Date(event.end_date).toLocaleDateString() : '—'}</td>
-                  <td>
-                    <div className="action-buttons">
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleEdit(event)}
-                        title="Edit"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                      </button>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleDelete(event)}
-                        title="Delete"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
+              {events.map((event, index) => {
+                const eventIsSpan = isEventSpan(event)
+                const startDateDisplay = formatEventDate(event, false)
+                const endDateDisplay = formatEventDate(event, true)
+                
+                return (
+                  <motion.tr
+                    key={event.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <td>
+                      <div className="event-title-cell">
+                        <strong>{event.title}</strong>
+                        {event.description && (
+                          <span className="event-preview">{event.description.substring(0, 60)}...</span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`type-badge ${event.date_type === 'astronomical' ? 'astronomical' : 'historical'}`}>
+                        {event.date_type === 'astronomical' ? 'Astronomical' : 'Historical'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`type-badge ${eventIsSpan ? 'span' : 'point'}`}>
+                        {eventIsSpan ? 'Span' : 'Point'}
+                      </span>
+                    </td>
+                    <td className="date-cell">{startDateDisplay || '—'}</td>
+                    <td className="date-cell">{endDateDisplay || '—'}</td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleEdit(event)}
+                          title="Edit"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDelete(event)}
+                          title="Delete"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                )
+              })}
             </tbody>
           </table>
         )}
