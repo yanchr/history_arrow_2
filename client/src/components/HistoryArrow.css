@@ -3,10 +3,50 @@
   padding: 2rem 0;
 }
 
+/* Timeline Header */
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.timeline-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text, #fff);
+  margin: 0;
+}
+
+.reset-view-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-text-secondary, #a0a0a0);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-view-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text, #fff);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.reset-view-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 .timeline-wrapper {
   position: relative;
   height: 200px;
-  margin: 2rem 0;
+  margin: 1rem 0;
   overflow: hidden;
   background: linear-gradient(
     180deg,
@@ -15,13 +55,13 @@
     transparent 100%
   );
   border-radius: var(--radius-lg);
+  cursor: ns-resize;
 }
 
 .timeline-content {
   position: relative;
   height: 100%;
   padding: 0 60px;
-  transition: transform 0.3s ease;
 }
 
 /* Arrow Line */
@@ -105,6 +145,33 @@
   bottom: 0;
 }
 
+/* View Range Labels */
+.view-range-labels {
+  position: absolute;
+  top: 10px;
+  left: 60px;
+  right: 60px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.range-label {
+  font-size: 0.7rem;
+  color: var(--color-text-muted, #6b7280);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.range-label.past {
+  color: var(--color-primary, #6366f1);
+}
+
+.range-label.present {
+  color: var(--color-success, #10b981);
+}
+
 /* Timeline Legend */
 .timeline-legend {
   display: flex;
@@ -139,8 +206,20 @@
   border: 2px solid var(--color-accent);
 }
 
+.legend-hint {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  font-style: italic;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
+  .timeline-header {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
   .timeline-wrapper {
     height: 160px;
   }
@@ -164,11 +243,17 @@
     right: 40px;
   }
 
+  .view-range-labels {
+    left: 40px;
+    right: 40px;
+  }
+
   .tick-label {
     font-size: 0.65rem;
   }
 
   .timeline-legend {
     gap: 1rem;
+    flex-wrap: wrap;
   }
 }

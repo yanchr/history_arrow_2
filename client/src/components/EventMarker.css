@@ -166,3 +166,64 @@
   top: auto;
   bottom: -24px;
 }
+
+/* Selected State - Point Events */
+.event-point.selected .point-inner {
+  background: #22c55e;
+  transform: scale(1.4);
+  box-shadow: 
+    0 0 0 3px #22c55e,
+    0 0 30px rgba(34, 197, 94, 0.8);
+  border-color: var(--color-bg);
+}
+
+.event-point.selected .point-pulse {
+  background: #22c55e;
+  animation: pulse-ring-selected 1.5s ease-out infinite;
+}
+
+@keyframes pulse-ring-selected {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3);
+    opacity: 0;
+  }
+}
+
+.event-point.selected .point-label {
+  opacity: 1;
+  color: #4ade80;
+  font-weight: 600;
+}
+
+/* Selected State - Span Events */
+.event-span.selected .span-body {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(34, 197, 94, 0.1));
+  border-color: #22c55e;
+  box-shadow: 
+    0 0 35px rgba(34, 197, 94, 0.6),
+    inset 0 0 20px rgba(34, 197, 94, 0.2);
+}
+
+.event-span.selected .span-start-cap,
+.event-span.selected .span-end-cap {
+  background: #22c55e;
+}
+
+.event-span.selected .span-fill {
+  background: linear-gradient(
+    90deg,
+    rgba(34, 197, 94, 0.5),
+    rgba(34, 197, 94, 0.2),
+    rgba(34, 197, 94, 0.5)
+  );
+}
+
+.event-span.selected .span-label {
+  opacity: 1;
+  color: #4ade80;
+  font-weight: 600;
+}
