@@ -1,13 +1,25 @@
 import { motion } from 'framer-motion'
-import { formatDisplayDate } from '../utils/dateUtils'
+import { formatEventDate } from '../utils/dateUtils'
 import './EventTooltip.css'
 
 function EventTooltip({ event, position }) {
-  const { title, description, start_date, end_date } = event
+  const { title, description, date_type } = event
 
   // Determine tooltip placement
   const tooltipX = position.x > 300 ? position.x - 320 : position.x + 20
   const tooltipY = position.y > 100 ? position.y - 100 : position.y + 20
+
+  // Get formatted dates based on event type
+  const startDateDisplay = formatEventDate(event, false)
+  const endDateDisplay = formatEventDate(event, true)
+
+  // Determine if this is a span based on the event type
+  const isSpan = date_type === 'astronomical'
+    ? !!event.astronomical_end_year
+    : !!event.end_date
+
+  // Get event type label
+  const eventTypeLabel = date_type === 'astronomical' ? 'Astronomical' : 'Historical'
 
   return (
     <motion.div
@@ -24,14 +36,14 @@ function EventTooltip({ event, position }) {
       <div className="tooltip-header">
         <h3 className="tooltip-title">{title}</h3>
         <div className="tooltip-date">
-          {end_date ? (
+          {isSpan && endDateDisplay ? (
             <>
-              <span>{formatDisplayDate(start_date)}</span>
+              <span>{startDateDisplay}</span>
               <span className="date-separator">→</span>
-              <span>{formatDisplayDate(end_date)}</span>
+              <span>{endDateDisplay}</span>
             </>
           ) : (
-            <span>{formatDisplayDate(start_date)}</span>
+            <span>{startDateDisplay}</span>
           )}
         </div>
       </div>
@@ -44,7 +56,7 @@ function EventTooltip({ event, position }) {
 
       <div className="tooltip-footer">
         <span className="tooltip-type">
-          {end_date ? 'Time Span' : 'Point Event'}
+          {eventTypeLabel} • {isSpan ? 'Time Span' : 'Point Event'}
         </span>
       </div>
 
