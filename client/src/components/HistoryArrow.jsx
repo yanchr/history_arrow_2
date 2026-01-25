@@ -1,11 +1,10 @@
 import { useState, useMemo, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import EventMarker from './EventMarker'
-import EventTooltip from './EventTooltip'
+import ClusterIndicator from './ClusterIndicator'
 import LogarithmicMinimap from './LogarithmicMinimap'
 import {
   yearToLinearPosition,
-  linearPositionToYear,
   getLinearTicks,
   formatYearsAgoShort,
   eventToYearsAgo,
@@ -13,11 +12,18 @@ import {
   DEFAULT_MIN_YEARS,
   DEFAULT_MAX_YEARS
 } from '../utils/logScaleUtils'
+import {
+  detectClusters,
+  getClusteredEventIds,
+  getPriorityThreshold,
+  shouldShowLabel,
+  getClusterZoomBounds
+} from '../utils/clusterUtils'
 import './HistoryArrow.css'
 
 function HistoryArrow({ events, selectedEvent, onEventClick }) {
   const [hoveredEvent, setHoveredEvent] = useState(null)
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+  const [hoveredCluster, setHoveredCluster] = useState(null)
   // View state: years ago for the visible range
   // viewStart = closer to present (smaller years ago)
   // viewEnd = further in past (larger years ago)
@@ -116,20 +122,29 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
       })
   }, [events, viewStart, viewEnd])
 
-  const handleEventHover = (event, e) => {
-    if (!event) {
-      setHoveredEvent(null)
-      return
-    }
+  // Detect clusters of overlapping events
+  const clusters = useMemo(() => {
+    // Only cluster point events, not spans
+    const pointEvents = positionedEvents.filter(e => !e.isSpan)
+    return detectClusters(pointEvents, 3) // 3% threshold
+  }, [positionedEvents])
 
-    const rect = timelineRef.current?.getBoundingClientRect()
-    if (rect) {
-      setTooltipPosition({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      })
-    }
+  // Get IDs of events that are part of clusters
+  const clusteredEventIds = useMemo(() => {
+    return getClusteredEventIds(clusters)
+  }, [clusters])
+
+  // Calculate priority threshold based on zoom level
+  const priorityThreshold = useMemo(() => {
+    return getPriorityThreshold(viewStart, viewEnd, DEFAULT_MIN_YEARS, DEFAULT_MAX_YEARS)
+  }, [viewStart, viewEnd])
+
+  const handleEventHover = (event) => {
     setHoveredEvent(event)
+  }
+
+  const handleClusterHover = (cluster) => {
+    setHoveredCluster(cluster)
   }
 
   // Handle view changes from the minimap
@@ -138,36 +153,11 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
     setViewEnd(Math.min(DEFAULT_MAX_YEARS, newEnd))
   }, [])
 
-  // Handle wheel zoom on the main timeline
-  const handleWheel = useCallback((e) => {
-    e.preventDefault()
-    if (!timelineRef.current) return
-
-    const rect = timelineRef.current.getBoundingClientRect()
-    const mousePercent = ((e.clientX - rect.left) / rect.width) * 100
-    // Use LINEAR position to year since the arrow display is linear
-    const mouseYears = linearPositionToYear(mousePercent, viewStart, viewEnd)
-
-    // Zoom factor
-    const zoomFactor = e.deltaY > 0 ? 1.3 : 0.77
-
-    // Calculate new span - use logarithmic zoom for smooth navigation across scales
-    const logStart = Math.log10(viewStart)
-    const logEnd = Math.log10(viewEnd)
-    const currentSpan = logEnd - logStart
-    const newSpan = Math.max(0.5, Math.min(10, currentSpan * zoomFactor))
-
-    // Maintain relative position of mouse within the view (in linear space)
-    const mouseRelative = (mouseYears - viewStart) / (viewEnd - viewStart)
-    const logMouse = Math.log10(mouseYears)
-    const newLogStart = logMouse - mouseRelative * newSpan
-    const newLogEnd = logMouse + (1 - mouseRelative) * newSpan
-
-    handleViewChange(
-      Math.pow(10, newLogStart),
-      Math.pow(10, newLogEnd)
-    )
-  }, [viewStart, viewEnd, handleViewChange])
+  // Handle cluster click to zoom into cluster
+  const handleClusterClick = useCallback((cluster) => {
+    const { viewStart: newStart, viewEnd: newEnd } = getClusterZoomBounds(cluster)
+    handleViewChange(newStart, newEnd)
+  }, [handleViewChange])
 
   // Reset view to show all events
   const handleReset = useCallback(() => {
@@ -191,7 +181,6 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
       <div 
         className="timeline-wrapper" 
         ref={timelineRef}
-        onWheel={handleWheel}
       >
         <motion.div
           className="timeline-content"
@@ -226,15 +215,50 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
           </div>
 
           {/* Event Markers */}
-          <div className="events-layer">
-            {positionedEvents.map(event => (
-              <EventMarker
-                key={event.id}
-                event={event}
-                onHover={handleEventHover}
-                onClick={onEventClick}
-                isHovered={hoveredEvent?.id === event.id}
-                isSelected={selectedEvent?.id === event.id}
+          <div className={`events-layer ${hoveredCluster ? 'has-hovered-cluster' : ''}`}>
+            {positionedEvents.map(event => {
+              const isInCluster = clusteredEventIds.has(event.id)
+              const showLabel = shouldShowLabel(event, priorityThreshold, clusteredEventIds)
+              
+              // Check if this event is in the currently hovered cluster
+              const isInHoveredCluster = hoveredCluster?.events?.some(e => e.id === event.id)
+              
+              // Calculate fisheye offset for events in hovered cluster
+              let fisheyeOffset = 0
+              if (isInHoveredCluster && hoveredCluster) {
+                const clusterEvents = hoveredCluster.events
+                const eventIndex = clusterEvents.findIndex(e => e.id === event.id)
+                const totalEvents = clusterEvents.length
+                // Spread events evenly around the cluster center
+                const spreadWidth = Math.min(15, totalEvents * 4) // Max 15% spread
+                fisheyeOffset = ((eventIndex - (totalEvents - 1) / 2) / Math.max(1, totalEvents - 1)) * spreadWidth
+              }
+              
+              return (
+                <EventMarker
+                  key={event.id}
+                  event={event}
+                  onHover={handleEventHover}
+                  onClick={onEventClick}
+                  isHovered={hoveredEvent?.id === event.id}
+                  isSelected={selectedEvent?.id === event.id}
+                  showLabel={showLabel || isInHoveredCluster}
+                  isInCluster={isInCluster}
+                  isInHoveredCluster={isInHoveredCluster}
+                  fisheyeOffset={fisheyeOffset}
+                  isDimmed={hoveredCluster && !isInHoveredCluster}
+                />
+              )
+            })}
+            
+            {/* Cluster Indicators */}
+            {clusters.map(cluster => (
+              <ClusterIndicator
+                key={cluster.id}
+                cluster={cluster}
+                onClick={handleClusterClick}
+                onHover={handleClusterHover}
+                isHovered={hoveredCluster?.id === cluster.id}
               />
             ))}
           </div>
@@ -250,15 +274,6 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
           </div>
         </motion.div>
 
-        {/* Tooltip */}
-        <AnimatePresence>
-          {hoveredEvent && (
-            <EventTooltip
-              event={hoveredEvent}
-              position={tooltipPosition}
-            />
-          )}
-        </AnimatePresence>
       </div>
 
       {/* Logarithmic Minimap */}
@@ -280,9 +295,6 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
         <div className="legend-item">
           <span className="legend-span" />
           <span>Time Span</span>
-        </div>
-        <div className="legend-item legend-hint">
-          <span>Scroll to zoom</span>
         </div>
       </div>
     </div>

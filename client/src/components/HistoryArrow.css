@@ -145,6 +145,14 @@
   bottom: 0;
 }
 
+/* When a cluster is being hovered, dim the rest of the timeline */
+.events-layer.has-hovered-cluster ~ .view-range-labels,
+.timeline-content:has(.events-layer.has-hovered-cluster) .arrow-line,
+.timeline-content:has(.events-layer.has-hovered-cluster) .timeline-ticks {
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+}
+
 /* View Range Labels */
 .view-range-labels {
   position: absolute;

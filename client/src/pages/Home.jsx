@@ -7,6 +7,7 @@ import { formatEventDate } from '../utils/dateUtils'
 import './Home.css'
 
 // Sample events for demonstration (using the new date_type format)
+// Priority scale: 1=Minor, 2=Low, 3=Normal, 4=High, 5=Major/Anchor
 const sampleEvents = [
   // Astronomical events (billions/millions of years ago)
   {
@@ -17,7 +18,8 @@ const sampleEvents = [
     start_date: null,
     end_date: null,
     astronomical_start_year: 4540000000,
-    astronomical_end_year: null
+    astronomical_end_year: null,
+    priority: 5 // Major anchor event
   },
   {
     id: 2,
@@ -27,7 +29,8 @@ const sampleEvents = [
     start_date: null,
     end_date: null,
     astronomical_start_year: 4600000000,
-    astronomical_end_year: 4000000000
+    astronomical_end_year: 4000000000,
+    priority: 5 // Major anchor event
   },
   {
     id: 3,
@@ -37,7 +40,8 @@ const sampleEvents = [
     start_date: null,
     end_date: null,
     astronomical_start_year: 538000000,
-    astronomical_end_year: 485000000
+    astronomical_end_year: 485000000,
+    priority: 4 // High priority
   },
   {
     id: 4,
@@ -47,7 +51,8 @@ const sampleEvents = [
     start_date: null,
     end_date: null,
     astronomical_start_year: 66000000,
-    astronomical_end_year: null
+    astronomical_end_year: null,
+    priority: 5 // Major anchor event
   },
   // Calendar date events
   {
@@ -58,7 +63,8 @@ const sampleEvents = [
     start_date: '1879-10-21',
     end_date: null,
     astronomical_start_year: null,
-    astronomical_end_year: null
+    astronomical_end_year: null,
+    priority: 2 // Low priority
   },
   {
     id: 6,
@@ -68,7 +74,8 @@ const sampleEvents = [
     start_date: '1939-09-01',
     end_date: '1945-09-02',
     astronomical_start_year: null,
-    astronomical_end_year: null
+    astronomical_end_year: null,
+    priority: 5 // Major anchor event
   },
   {
     id: 7,
@@ -78,7 +85,8 @@ const sampleEvents = [
     start_date: '1969-07-20',
     end_date: null,
     astronomical_start_year: null,
-    astronomical_end_year: null
+    astronomical_end_year: null,
+    priority: 4 // High priority
   }
 ]
 

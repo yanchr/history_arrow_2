@@ -193,6 +193,7 @@ function Admin() {
             <thead>
               <tr>
                 <th>Title</th>
+                <th>Priority</th>
                 <th>Date Type</th>
                 <th>Event Type</th>
                 <th>Start</th>
@@ -220,6 +221,15 @@ function Admin() {
                           <span className="event-preview">{event.description.substring(0, 60)}...</span>
                         )}
                       </div>
+                    </td>
+                    <td>
+                      <span className={`priority-badge priority-${event.priority || 3}`}>
+                        {event.priority === 5 && 'Major'}
+                        {event.priority === 4 && 'High'}
+                        {(event.priority === 3 || !event.priority) && 'Normal'}
+                        {event.priority === 2 && 'Low'}
+                        {event.priority === 1 && 'Minor'}
+                      </span>
                     </td>
                     <td>
                       <span className={`type-badge ${event.date_type === 'astronomical' ? 'astronomical' : 'historical'}`}>
