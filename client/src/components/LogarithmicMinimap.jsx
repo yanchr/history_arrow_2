@@ -25,6 +25,7 @@ function LogarithmicMinimap({
   const [dragType, setDragType] = useState(null) // 'move', 'left', 'right'
   const [dragStartX, setDragStartX] = useState(0)
   const [initialView, setInitialView] = useState({ start: viewStart, end: viewEnd })
+  const justFinishedDragging = useRef(false)
 
   // Calculate viewfinder position from years
   const viewfinderLeft = yearToLogPosition(viewEnd, totalMin, totalMax)
@@ -63,38 +64,48 @@ function LogarithmicMinimap({
     const initialLeftPos = yearToLogPosition(initialView.end, totalMin, totalMax)
     const initialRightPos = yearToLogPosition(initialView.start, totalMin, totalMax)
 
-    let newLeftPos, newRightPos
-
     if (dragType === 'move') {
       // Move the entire viewfinder
-      newLeftPos = Math.max(0, Math.min(100 - (initialRightPos - initialLeftPos), initialLeftPos + deltaPercent))
-      newRightPos = newLeftPos + (initialRightPos - initialLeftPos)
+      let newLeftPos = Math.max(0, Math.min(100 - (initialRightPos - initialLeftPos), initialLeftPos + deltaPercent))
+      let newRightPos = newLeftPos + (initialRightPos - initialLeftPos)
+      
+      // Convert positions back to years
+      const newEnd = logPositionToYear(newLeftPos, totalMin, totalMax)
+      const newStart = logPositionToYear(newRightPos, totalMin, totalMax)
+      onViewChange(newStart, newEnd)
     } else if (dragType === 'left') {
       // Resize from left edge (changes end/older boundary)
-      newLeftPos = Math.max(0, Math.min(initialRightPos - 1, initialLeftPos + deltaPercent))
-      newRightPos = initialRightPos
+      // KEEP the right edge (start/newer) EXACTLY fixed
+      const newLeftPos = Math.max(0, Math.min(initialRightPos - 1, initialLeftPos + deltaPercent))
+      const newEnd = logPositionToYear(newLeftPos, totalMin, totalMax)
+      // Use the original start value directly, not converted from position
+      onViewChange(initialView.start, newEnd)
     } else if (dragType === 'right') {
       // Resize from right edge (changes start/newer boundary)
-      newLeftPos = initialLeftPos
-      newRightPos = Math.max(initialLeftPos + 1, Math.min(100, initialRightPos + deltaPercent))
+      // KEEP the left edge (end/older) EXACTLY fixed
+      const newRightPos = Math.max(initialLeftPos + 1, Math.min(100, initialRightPos + deltaPercent))
+      const newStart = logPositionToYear(newRightPos, totalMin, totalMax)
+      // Use the original end value directly, not converted from position
+      onViewChange(newStart, initialView.end)
     }
-
-    // Convert positions back to years
-    const newEnd = logPositionToYear(newLeftPos, totalMin, totalMax)
-    const newStart = logPositionToYear(newRightPos, totalMin, totalMax)
-
-    onViewChange(newStart, newEnd)
   }, [isDragging, dragType, dragStartX, initialView, totalMin, totalMax, onViewChange])
 
   // Handle mouse up
   const handleMouseUp = useCallback(() => {
+    // Set flag to prevent click event from firing after drag
+    justFinishedDragging.current = true
+    setTimeout(() => {
+      justFinishedDragging.current = false
+    }, 100)
+    
     setIsDragging(false)
     setDragType(null)
   }, [])
 
   // Handle click on minimap background to jump
   const handleMinimapClick = useCallback((e) => {
-    if (!containerRef.current || isDragging) return
+    // Prevent click from firing right after a drag operation
+    if (!containerRef.current || isDragging || justFinishedDragging.current) return
 
     const rect = containerRef.current.getBoundingClientRect()
     const clickPercent = ((e.clientX - rect.left) / rect.width) * 100
