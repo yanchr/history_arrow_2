@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import EventMarker from './EventMarker'
 import ClusterIndicator from './ClusterIndicator'
@@ -25,7 +25,7 @@ import './HistoryArrow.css'
 // Current year for calculating calendar years
 const CURRENT_YEAR = new Date().getFullYear()
 
-function HistoryArrow({ events, selectedEvent, onEventClick }) {
+function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChange }) {
   const [hoveredEvent, setHoveredEvent] = useState(null)
   const [hoveredCluster, setHoveredCluster] = useState(null)
   const [timelineHover, setTimelineHover] = useState({ active: false, x: 0, yearsAgo: 0 })
@@ -33,7 +33,7 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
   // viewStart = closer to present (smaller years ago)
   // viewEnd = further in past (larger years ago)
   const [viewStart, setViewStart] = useState(1) // 1 year ago
-  const [viewEnd, setViewEnd] = useState(5e9) // 5 billion years ago
+  const [viewEnd, setViewEnd] = useState(CURRENT_YEAR) // Default to year 0 (2026 years ago)
   const timelineRef = useRef(null)
   const eventsLayerRef = useRef(null)
 
@@ -127,6 +127,13 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
         }
       })
   }, [events, viewStart, viewEnd])
+
+  // Notify parent of visible events changes
+  useEffect(() => {
+    if (onVisibleEventsChange) {
+      onVisibleEventsChange(positionedEvents)
+    }
+  }, [positionedEvents, onVisibleEventsChange])
 
   // Detect clusters of overlapping events
   const clusters = useMemo(() => {
