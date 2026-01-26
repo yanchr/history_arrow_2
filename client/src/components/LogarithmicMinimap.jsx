@@ -25,6 +25,7 @@ function LogarithmicMinimap({
   const [dragType, setDragType] = useState(null) // 'move', 'left', 'right'
   const [dragStartX, setDragStartX] = useState(0)
   const [initialView, setInitialView] = useState({ start: viewStart, end: viewEnd })
+  const justFinishedDragging = useRef(false)
 
   // Calculate viewfinder position from years
   const viewfinderLeft = yearToLogPosition(viewEnd, totalMin, totalMax)
@@ -39,7 +40,7 @@ function LogarithmicMinimap({
   const eventDots = events.map(event => {
     const yearsAgo = eventToYearsAgo(event)
     const position = yearToLogPosition(yearsAgo, totalMin, totalMax)
-    return { id: event.id, position, title: event.title }
+    return { id: event.id, position, title: event.title, priority: event.priority || 3 }
   })
 
   // Handle mouse down on viewfinder
@@ -63,38 +64,48 @@ function LogarithmicMinimap({
     const initialLeftPos = yearToLogPosition(initialView.end, totalMin, totalMax)
     const initialRightPos = yearToLogPosition(initialView.start, totalMin, totalMax)
 
-    let newLeftPos, newRightPos
-
     if (dragType === 'move') {
       // Move the entire viewfinder
-      newLeftPos = Math.max(0, Math.min(100 - (initialRightPos - initialLeftPos), initialLeftPos + deltaPercent))
-      newRightPos = newLeftPos + (initialRightPos - initialLeftPos)
+      let newLeftPos = Math.max(0, Math.min(100 - (initialRightPos - initialLeftPos), initialLeftPos + deltaPercent))
+      let newRightPos = newLeftPos + (initialRightPos - initialLeftPos)
+      
+      // Convert positions back to years
+      const newEnd = logPositionToYear(newLeftPos, totalMin, totalMax)
+      const newStart = logPositionToYear(newRightPos, totalMin, totalMax)
+      onViewChange(newStart, newEnd)
     } else if (dragType === 'left') {
       // Resize from left edge (changes end/older boundary)
-      newLeftPos = Math.max(0, Math.min(initialRightPos - 1, initialLeftPos + deltaPercent))
-      newRightPos = initialRightPos
+      // KEEP the right edge (start/newer) EXACTLY fixed
+      const newLeftPos = Math.max(0, Math.min(initialRightPos - 1, initialLeftPos + deltaPercent))
+      const newEnd = logPositionToYear(newLeftPos, totalMin, totalMax)
+      // Use the original start value directly, not converted from position
+      onViewChange(initialView.start, newEnd)
     } else if (dragType === 'right') {
       // Resize from right edge (changes start/newer boundary)
-      newLeftPos = initialLeftPos
-      newRightPos = Math.max(initialLeftPos + 1, Math.min(100, initialRightPos + deltaPercent))
+      // KEEP the left edge (end/older) EXACTLY fixed
+      const newRightPos = Math.max(initialLeftPos + 1, Math.min(100, initialRightPos + deltaPercent))
+      const newStart = logPositionToYear(newRightPos, totalMin, totalMax)
+      // Use the original end value directly, not converted from position
+      onViewChange(newStart, initialView.end)
     }
-
-    // Convert positions back to years
-    const newEnd = logPositionToYear(newLeftPos, totalMin, totalMax)
-    const newStart = logPositionToYear(newRightPos, totalMin, totalMax)
-
-    onViewChange(newStart, newEnd)
   }, [isDragging, dragType, dragStartX, initialView, totalMin, totalMax, onViewChange])
 
   // Handle mouse up
   const handleMouseUp = useCallback(() => {
+    // Set flag to prevent click event from firing after drag
+    justFinishedDragging.current = true
+    setTimeout(() => {
+      justFinishedDragging.current = false
+    }, 100)
+    
     setIsDragging(false)
     setDragType(null)
   }, [])
 
   // Handle click on minimap background to jump
   const handleMinimapClick = useCallback((e) => {
-    if (!containerRef.current || isDragging) return
+    // Prevent click from firing right after a drag operation
+    if (!containerRef.current || isDragging || justFinishedDragging.current) return
 
     const rect = containerRef.current.getBoundingClientRect()
     const clickPercent = ((e.clientX - rect.left) / rect.width) * 100
@@ -114,38 +125,6 @@ function LogarithmicMinimap({
       Math.min(totalMax, newEnd)
     )
   }, [isDragging, viewStart, viewEnd, totalMin, totalMax, onViewChange])
-
-  // Handle wheel zoom
-  const handleWheel = useCallback((e) => {
-    e.preventDefault()
-    if (!containerRef.current) return
-
-    const rect = containerRef.current.getBoundingClientRect()
-    const mousePercent = ((e.clientX - rect.left) / rect.width) * 100
-    const mouseYears = logPositionToYear(mousePercent, totalMin, totalMax)
-
-    // Zoom factor
-    const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8
-
-    // Calculate new span
-    const currentSpan = Math.abs(Math.log10(viewEnd) - Math.log10(viewStart))
-    const newSpan = Math.max(0.5, Math.min(10, currentSpan * zoomFactor))
-
-    // Calculate new bounds centered on mouse position
-    const logMouse = Math.log10(mouseYears)
-    const logStart = Math.log10(viewStart)
-    const logEnd = Math.log10(viewEnd)
-
-    // Maintain relative position of mouse within the view
-    const mouseRelative = (logMouse - logStart) / (logEnd - logStart)
-    const newLogStart = logMouse - mouseRelative * newSpan
-    const newLogEnd = logMouse + (1 - mouseRelative) * newSpan
-
-    onViewChange(
-      Math.max(totalMin, Math.pow(10, newLogStart)),
-      Math.min(totalMax, Math.pow(10, newLogEnd))
-    )
-  }, [viewStart, viewEnd, totalMin, totalMax, onViewChange])
 
   // Handle pan left (go back in time / further into past)
   const handlePanLeft = useCallback(() => {
@@ -324,7 +303,6 @@ function LogarithmicMinimap({
             ref={containerRef}
             className="minimap-container"
             onClick={handleMinimapClick}
-            onWheel={handleWheel}
           >
         {/* Era backgrounds */}
         <div className="minimap-eras">
@@ -369,7 +347,7 @@ function LogarithmicMinimap({
           {eventDots.map(dot => (
             <div
               key={dot.id}
-              className="minimap-event-dot"
+              className={`minimap-event-dot priority-${dot.priority}`}
               style={{ left: `${dot.position}%` }}
               title={dot.title}
             />

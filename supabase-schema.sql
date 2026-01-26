@@ -1,6 +1,12 @@
 -- Supabase Schema for History Arrow
 -- Run this SQL in your Supabase SQL Editor to set up the database
 
+-- ============================================
+-- MIGRATION: If you have an existing database, run this to add priority:
+-- ALTER TABLE events ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 3 CHECK (priority >= 1 AND priority <= 5);
+-- CREATE INDEX IF NOT EXISTS idx_events_priority ON events(priority);
+-- ============================================
+
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -21,6 +27,9 @@ CREATE TABLE IF NOT EXISTS events (
   -- Stored as positive BIGINT representing years ago from present
   astronomical_start_year BIGINT,
   astronomical_end_year BIGINT,
+  
+  -- Priority for adaptive label display (1=Minor, 2=Low, 3=Normal, 4=High, 5=Major/Anchor)
+  priority INTEGER DEFAULT 3 CHECK (priority >= 1 AND priority <= 5),
   
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -63,6 +72,7 @@ CREATE INDEX idx_events_end_date ON events(end_date);
 CREATE INDEX idx_events_date_type ON events(date_type);
 CREATE INDEX idx_events_astronomical_start ON events(astronomical_start_year);
 CREATE INDEX idx_events_created_at ON events(created_at);
+CREATE INDEX idx_events_priority ON events(priority);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
@@ -92,24 +102,25 @@ CREATE POLICY "Authenticated users can delete events"
   USING (true);
 
 -- Insert sample data
+-- Priority scale: 1=Minor, 2=Low, 3=Normal, 4=High, 5=Major/Anchor
 
 -- Astronomical events (billions/millions of years ago)
-INSERT INTO events (title, description, date_type, astronomical_start_year, astronomical_end_year) VALUES
-  ('Formation of Earth', 'The Earth formed approximately 4.54 billion years ago by accretion from the solar nebula. The early Earth was molten due to extreme volcanism and frequent collisions with other bodies.', 'astronomical', 4540000000, NULL),
-  ('Hadean Eon', 'The earliest eon in Earth''s history, characterized by the formation of the planet and heavy bombardment by asteroids and comets. The name comes from Hades, the Greek god of the underworld.', 'astronomical', 4600000000, 4000000000),
-  ('Great Oxygenation Event', 'Cyanobacteria began producing oxygen through photosynthesis, dramatically changing Earth''s atmosphere and enabling the evolution of aerobic life forms.', 'astronomical', 2400000000, 2000000000),
-  ('Cambrian Explosion', 'A period of rapid evolutionary diversification when most major animal phyla appeared in the fossil record. This event fundamentally shaped the tree of life.', 'astronomical', 538000000, 485000000),
-  ('Extinction of Dinosaurs', 'The Cretaceous-Paleogene extinction event caused by an asteroid impact, leading to the extinction of non-avian dinosaurs and many other species.', 'astronomical', 66000000, NULL);
+INSERT INTO events (title, description, date_type, astronomical_start_year, astronomical_end_year, priority) VALUES
+  ('Formation of Earth', 'The Earth formed approximately 4.54 billion years ago by accretion from the solar nebula. The early Earth was molten due to extreme volcanism and frequent collisions with other bodies.', 'astronomical', 4540000000, NULL, 5),
+  ('Hadean Eon', 'The earliest eon in Earth''s history, characterized by the formation of the planet and heavy bombardment by asteroids and comets. The name comes from Hades, the Greek god of the underworld.', 'astronomical', 4600000000, 4000000000, 5),
+  ('Great Oxygenation Event', 'Cyanobacteria began producing oxygen through photosynthesis, dramatically changing Earth''s atmosphere and enabling the evolution of aerobic life forms.', 'astronomical', 2400000000, 2000000000, 4),
+  ('Cambrian Explosion', 'A period of rapid evolutionary diversification when most major animal phyla appeared in the fossil record. This event fundamentally shaped the tree of life.', 'astronomical', 538000000, 485000000, 4),
+  ('Extinction of Dinosaurs', 'The Cretaceous-Paleogene extinction event caused by an asteroid impact, leading to the extinction of non-avian dinosaurs and many other species.', 'astronomical', 66000000, NULL, 5);
 
 -- Calendar date events (precise dates)
-INSERT INTO events (title, description, date_type, start_date, end_date) VALUES
-  ('Invention of the Lightbulb', 'Thomas Edison successfully demonstrated his incandescent light bulb on October 21, 1879, revolutionizing the way humans illuminate their world and ushering in the age of electric lighting.', 'date', '1879-10-21', NULL),
-  ('World War II', 'A global conflict that lasted from 1939 to 1945, involving most of the world''s nations divided into two opposing military alliances: the Allies and the Axis powers.', 'date', '1939-09-01', '1945-09-02'),
-  ('Moon Landing', 'Apollo 11 astronauts Neil Armstrong and Buzz Aldrin became the first humans to walk on the Moon on July 20, 1969, while Michael Collins orbited above in the command module.', 'date', '1969-07-20', NULL),
-  ('Renaissance Period', 'A cultural movement that began in Italy and spread throughout Europe, marking the transition from the medieval period to modernity. It saw extraordinary flourishing in art, architecture, literature, and science.', 'date', '1400-01-01', '1600-01-01'),
-  ('Industrial Revolution', 'The transition to new manufacturing processes in Britain and later worldwide, fundamentally changing economy and society through mechanization, factory systems, and urbanization.', 'date', '1760-01-01', '1840-01-01'),
-  ('Fall of the Roman Empire', 'The gradual decline and fall of the Western Roman Empire, traditionally dated to 476 AD when the last Roman emperor Romulus Augustulus was deposed.', 'date', '0476-09-04', NULL),
-  ('Age of Exploration', 'A period of European global exploration that began in the early 15th century and continued into the early 17th century, during which Europeans explored Africa, the Americas, Asia, and Oceania.', 'date', '1400-01-01', '1600-01-01');
+INSERT INTO events (title, description, date_type, start_date, end_date, priority) VALUES
+  ('Invention of the Lightbulb', 'Thomas Edison successfully demonstrated his incandescent light bulb on October 21, 1879, revolutionizing the way humans illuminate their world and ushering in the age of electric lighting.', 'date', '1879-10-21', NULL, 2),
+  ('World War II', 'A global conflict that lasted from 1939 to 1945, involving most of the world''s nations divided into two opposing military alliances: the Allies and the Axis powers.', 'date', '1939-09-01', '1945-09-02', 5),
+  ('Moon Landing', 'Apollo 11 astronauts Neil Armstrong and Buzz Aldrin became the first humans to walk on the Moon on July 20, 1969, while Michael Collins orbited above in the command module.', 'date', '1969-07-20', NULL, 4),
+  ('Renaissance Period', 'A cultural movement that began in Italy and spread throughout Europe, marking the transition from the medieval period to modernity. It saw extraordinary flourishing in art, architecture, literature, and science.', 'date', '1400-01-01', '1600-01-01', 4),
+  ('Industrial Revolution', 'The transition to new manufacturing processes in Britain and later worldwide, fundamentally changing economy and society through mechanization, factory systems, and urbanization.', 'date', '1760-01-01', '1840-01-01', 5),
+  ('Fall of the Roman Empire', 'The gradual decline and fall of the Western Roman Empire, traditionally dated to 476 AD when the last Roman emperor Romulus Augustulus was deposed.', 'date', '0476-09-04', NULL, 5),
+  ('Age of Exploration', 'A period of European global exploration that began in the early 15th century and continued into the early 17th century, during which Europeans explored Africa, the Americas, Asia, and Oceania.', 'date', '1400-01-01', '1600-01-01', 3);
 
 -- Grant permissions for the service role
 GRANT ALL ON events TO service_role;

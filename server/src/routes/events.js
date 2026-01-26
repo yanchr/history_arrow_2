@@ -3,6 +3,13 @@ import { supabase, isSupabaseConfigured } from '../config/supabase.js'
 
 const router = express.Router()
 
+// Priority scale:
+// 1 = Minor event (label hidden when zoomed out)
+// 2 = Low priority
+// 3 = Normal event (default)
+// 4 = High priority
+// 5 = Anchor/Major event (label always visible)
+
 // Mock data for when Supabase is not configured
 let mockEvents = [
   // Astronomical events (billions/millions of years ago)
@@ -15,6 +22,7 @@ let mockEvents = [
     end_date: null,
     astronomical_start_year: 4540000000,
     astronomical_end_year: null,
+    priority: 5, // Anchor event
     created_at: new Date().toISOString()
   },
   {
@@ -26,6 +34,7 @@ let mockEvents = [
     end_date: null,
     astronomical_start_year: 4600000000,
     astronomical_end_year: 4000000000,
+    priority: 5, // Anchor event
     created_at: new Date().toISOString()
   },
   {
@@ -37,6 +46,7 @@ let mockEvents = [
     end_date: null,
     astronomical_start_year: 538000000,
     astronomical_end_year: 485000000,
+    priority: 4, // High priority
     created_at: new Date().toISOString()
   },
   {
@@ -48,6 +58,7 @@ let mockEvents = [
     end_date: null,
     astronomical_start_year: 66000000,
     astronomical_end_year: null,
+    priority: 5, // Anchor event
     created_at: new Date().toISOString()
   },
   // Calendar date events
@@ -60,6 +71,7 @@ let mockEvents = [
     end_date: null,
     astronomical_start_year: null,
     astronomical_end_year: null,
+    priority: 2, // Minor event
     created_at: new Date().toISOString()
   },
   {
@@ -71,6 +83,7 @@ let mockEvents = [
     end_date: '1945-09-02',
     astronomical_start_year: null,
     astronomical_end_year: null,
+    priority: 5, // Anchor event
     created_at: new Date().toISOString()
   },
   {
@@ -82,6 +95,7 @@ let mockEvents = [
     end_date: null,
     astronomical_start_year: null,
     astronomical_end_year: null,
+    priority: 4, // High priority
     created_at: new Date().toISOString()
   }
 ]
@@ -95,12 +109,21 @@ function validateEventData(body, isUpdate = false) {
     start_date, 
     end_date, 
     astronomical_start_year, 
-    astronomical_end_year 
+    astronomical_end_year,
+    priority
   } = body
 
   // Title validation
   if (!title || !title.trim()) {
     return { valid: false, error: 'Title is required' }
+  }
+
+  // Priority validation (optional, defaults to 3)
+  if (priority !== undefined && priority !== null) {
+    const priorityNum = Number(priority)
+    if (!Number.isInteger(priorityNum) || priorityNum < 1 || priorityNum > 5) {
+      return { valid: false, error: 'Priority must be an integer between 1 and 5' }
+    }
   }
 
   // Validate based on date_type
@@ -194,7 +217,8 @@ router.post('/', async (req, res, next) => {
       start_date, 
       end_date,
       astronomical_start_year,
-      astronomical_end_year
+      astronomical_end_year,
+      priority = 3 // Default to normal priority
     } = req.body
 
     // Validation
@@ -210,7 +234,8 @@ router.post('/', async (req, res, next) => {
       start_date: date_type === 'date' ? start_date : null,
       end_date: date_type === 'date' ? (end_date || null) : null,
       astronomical_start_year: date_type === 'astronomical' ? Number(astronomical_start_year) : null,
-      astronomical_end_year: date_type === 'astronomical' && astronomical_end_year ? Number(astronomical_end_year) : null
+      astronomical_end_year: date_type === 'astronomical' && astronomical_end_year ? Number(astronomical_end_year) : null,
+      priority: Number(priority)
     }
 
     if (!isSupabaseConfigured()) {
@@ -247,7 +272,8 @@ router.put('/:id', async (req, res, next) => {
       start_date, 
       end_date,
       astronomical_start_year,
-      astronomical_end_year
+      astronomical_end_year,
+      priority = 3
     } = req.body
 
     // Validation
@@ -263,7 +289,8 @@ router.put('/:id', async (req, res, next) => {
       start_date: date_type === 'date' ? start_date : null,
       end_date: date_type === 'date' ? (end_date || null) : null,
       astronomical_start_year: date_type === 'astronomical' ? Number(astronomical_start_year) : null,
-      astronomical_end_year: date_type === 'astronomical' && astronomical_end_year ? Number(astronomical_end_year) : null
+      astronomical_end_year: date_type === 'astronomical' && astronomical_end_year ? Number(astronomical_end_year) : null,
+      priority: Number(priority)
     }
 
     if (!isSupabaseConfigured()) {

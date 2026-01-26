@@ -1,7 +1,7 @@
-import { useState, useMemo, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import EventMarker from './EventMarker'
-import EventTooltip from './EventTooltip'
+import ClusterIndicator from './ClusterIndicator'
 import LogarithmicMinimap from './LogarithmicMinimap'
 import {
   yearToLinearPosition,
@@ -13,17 +13,29 @@ import {
   DEFAULT_MIN_YEARS,
   DEFAULT_MAX_YEARS
 } from '../utils/logScaleUtils'
+import {
+  detectClusters,
+  getClusteredEventIds,
+  getPriorityThreshold,
+  shouldShowLabel,
+  getClusterZoomBounds
+} from '../utils/clusterUtils'
 import './HistoryArrow.css'
 
-function HistoryArrow({ events, selectedEvent, onEventClick }) {
+// Current year for calculating calendar years
+const CURRENT_YEAR = new Date().getFullYear()
+
+function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChange }) {
   const [hoveredEvent, setHoveredEvent] = useState(null)
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+  const [hoveredCluster, setHoveredCluster] = useState(null)
+  const [timelineHover, setTimelineHover] = useState({ active: false, x: 0, yearsAgo: 0 })
   // View state: years ago for the visible range
   // viewStart = closer to present (smaller years ago)
   // viewEnd = further in past (larger years ago)
   const [viewStart, setViewStart] = useState(1) // 1 year ago
-  const [viewEnd, setViewEnd] = useState(5e9) // 5 billion years ago
+  const [viewEnd, setViewEnd] = useState(CURRENT_YEAR) // Default to year 0 (2026 years ago)
   const timelineRef = useRef(null)
+  const eventsLayerRef = useRef(null)
 
   // Calculate the overall bounds from events
   const eventBounds = useMemo(() => {
@@ -116,20 +128,36 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
       })
   }, [events, viewStart, viewEnd])
 
-  const handleEventHover = (event, e) => {
-    if (!event) {
-      setHoveredEvent(null)
-      return
+  // Notify parent of visible events changes
+  useEffect(() => {
+    if (onVisibleEventsChange) {
+      onVisibleEventsChange(positionedEvents)
     }
+  }, [positionedEvents, onVisibleEventsChange])
 
-    const rect = timelineRef.current?.getBoundingClientRect()
-    if (rect) {
-      setTooltipPosition({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      })
-    }
+  // Detect clusters of overlapping events
+  const clusters = useMemo(() => {
+    // Only cluster point events, not spans
+    const pointEvents = positionedEvents.filter(e => !e.isSpan)
+    return detectClusters(pointEvents, 1.5) // 1.5% threshold - only cluster when really close
+  }, [positionedEvents])
+
+  // Get IDs of events that are part of clusters
+  const clusteredEventIds = useMemo(() => {
+    return getClusteredEventIds(clusters)
+  }, [clusters])
+
+  // Calculate priority threshold based on zoom level
+  const priorityThreshold = useMemo(() => {
+    return getPriorityThreshold(viewStart, viewEnd, DEFAULT_MIN_YEARS, DEFAULT_MAX_YEARS)
+  }, [viewStart, viewEnd])
+
+  const handleEventHover = (event) => {
     setHoveredEvent(event)
+  }
+
+  const handleClusterHover = (cluster) => {
+    setHoveredCluster(cluster)
   }
 
   // Handle view changes from the minimap
@@ -138,42 +166,62 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
     setViewEnd(Math.min(DEFAULT_MAX_YEARS, newEnd))
   }, [])
 
-  // Handle wheel zoom on the main timeline
-  const handleWheel = useCallback((e) => {
-    e.preventDefault()
-    if (!timelineRef.current) return
-
-    const rect = timelineRef.current.getBoundingClientRect()
-    const mousePercent = ((e.clientX - rect.left) / rect.width) * 100
-    // Use LINEAR position to year since the arrow display is linear
-    const mouseYears = linearPositionToYear(mousePercent, viewStart, viewEnd)
-
-    // Zoom factor
-    const zoomFactor = e.deltaY > 0 ? 1.3 : 0.77
-
-    // Calculate new span - use logarithmic zoom for smooth navigation across scales
-    const logStart = Math.log10(viewStart)
-    const logEnd = Math.log10(viewEnd)
-    const currentSpan = logEnd - logStart
-    const newSpan = Math.max(0.5, Math.min(10, currentSpan * zoomFactor))
-
-    // Maintain relative position of mouse within the view (in linear space)
-    const mouseRelative = (mouseYears - viewStart) / (viewEnd - viewStart)
-    const logMouse = Math.log10(mouseYears)
-    const newLogStart = logMouse - mouseRelative * newSpan
-    const newLogEnd = logMouse + (1 - mouseRelative) * newSpan
-
-    handleViewChange(
-      Math.pow(10, newLogStart),
-      Math.pow(10, newLogEnd)
-    )
-  }, [viewStart, viewEnd, handleViewChange])
+  // Handle cluster click to zoom into cluster
+  const handleClusterClick = useCallback((cluster) => {
+    const { viewStart: newStart, viewEnd: newEnd } = getClusterZoomBounds(cluster)
+    handleViewChange(newStart, newEnd)
+  }, [handleViewChange])
 
   // Reset view to show all events
   const handleReset = useCallback(() => {
     setViewStart(eventBounds.min)
     setViewEnd(eventBounds.max)
   }, [eventBounds])
+
+  // Handle mouse move over timeline to show current position
+  const handleTimelineMouseMove = useCallback((e) => {
+    if (!eventsLayerRef.current) return
+    
+    const rect = eventsLayerRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const percentage = (x / rect.width) * 100
+    
+    // Convert position to years ago
+    const yearsAgo = linearPositionToYear(percentage, viewStart, viewEnd)
+    
+    setTimelineHover({
+      active: true,
+      x: e.clientX - rect.left + 60, // Offset for the events layer margin
+      yearsAgo
+    })
+  }, [viewStart, viewEnd])
+
+  const handleTimelineMouseLeave = useCallback(() => {
+    setTimelineHover(prev => ({ ...prev, active: false }))
+  }, [])
+
+  // Format the hover position as year or "years ago"
+  const formatHoverTime = (yearsAgo) => {
+    // If within the last ~2026 years (after year 0), show the calendar year
+    if (yearsAgo <= CURRENT_YEAR) {
+      const year = Math.round(CURRENT_YEAR - yearsAgo)
+      if (year < 0) {
+        return `${Math.abs(year)} BCE`
+      }
+      return `${year} CE`
+    }
+    
+    // Otherwise show "years ago" format
+    if (yearsAgo >= 1e9) {
+      return `${(yearsAgo / 1e9).toFixed(2)} billion years ago`
+    } else if (yearsAgo >= 1e6) {
+      return `${(yearsAgo / 1e6).toFixed(2)} million years ago`
+    } else if (yearsAgo >= 1e3) {
+      return `${(yearsAgo / 1e3).toFixed(1)}k years ago`
+    } else {
+      return `${Math.round(yearsAgo)} years ago`
+    }
+  }
 
   return (
     <div className="history-arrow-container">
@@ -191,7 +239,6 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
       <div 
         className="timeline-wrapper" 
         ref={timelineRef}
-        onWheel={handleWheel}
       >
         <motion.div
           className="timeline-content"
@@ -226,15 +273,55 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
           </div>
 
           {/* Event Markers */}
-          <div className="events-layer">
-            {positionedEvents.map(event => (
-              <EventMarker
-                key={event.id}
-                event={event}
-                onHover={handleEventHover}
-                onClick={onEventClick}
-                isHovered={hoveredEvent?.id === event.id}
-                isSelected={selectedEvent?.id === event.id}
+          <div 
+            ref={eventsLayerRef}
+            className={`events-layer ${hoveredCluster ? 'has-hovered-cluster' : ''}`}
+            onMouseMove={handleTimelineMouseMove}
+            onMouseLeave={handleTimelineMouseLeave}
+          >
+            {positionedEvents.map(event => {
+              const isInCluster = clusteredEventIds.has(event.id)
+              const showLabel = shouldShowLabel(event, priorityThreshold, clusteredEventIds)
+              
+              // Check if this event is in the currently hovered cluster
+              const isInHoveredCluster = hoveredCluster?.events?.some(e => e.id === event.id)
+              
+              // Calculate fisheye offset for events in hovered cluster
+              let fisheyeOffset = 0
+              if (isInHoveredCluster && hoveredCluster) {
+                const clusterEvents = hoveredCluster.events
+                const eventIndex = clusterEvents.findIndex(e => e.id === event.id)
+                const totalEvents = clusterEvents.length
+                // Spread events evenly around the cluster center
+                const spreadWidth = Math.min(15, totalEvents * 4) // Max 15% spread
+                fisheyeOffset = ((eventIndex - (totalEvents - 1) / 2) / Math.max(1, totalEvents - 1)) * spreadWidth
+              }
+              
+              return (
+                <EventMarker
+                  key={event.id}
+                  event={event}
+                  onHover={handleEventHover}
+                  onClick={onEventClick}
+                  isHovered={hoveredEvent?.id === event.id}
+                  isSelected={selectedEvent?.id === event.id}
+                  showLabel={showLabel || isInHoveredCluster}
+                  isInCluster={isInCluster}
+                  isInHoveredCluster={isInHoveredCluster}
+                  fisheyeOffset={fisheyeOffset}
+                  isDimmed={hoveredCluster && !isInHoveredCluster}
+                />
+              )
+            })}
+            
+            {/* Cluster Indicators */}
+            {clusters.map(cluster => (
+              <ClusterIndicator
+                key={cluster.id}
+                cluster={cluster}
+                onClick={handleClusterClick}
+                onHover={handleClusterHover}
+                isHovered={hoveredCluster?.id === cluster.id}
               />
             ))}
           </div>
@@ -248,17 +335,23 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
               {formatYearsAgoShort(viewStart)} ago
             </span>
           </div>
+
+          {/* Hover time indicator */}
+          {timelineHover.active && (
+            <motion.div 
+              className="timeline-hover-indicator"
+              style={{ left: timelineHover.x }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
+            >
+              <div className="hover-line" />
+              <span className="hover-time">{formatHoverTime(timelineHover.yearsAgo)}</span>
+            </motion.div>
+          )}
         </motion.div>
 
-        {/* Tooltip */}
-        <AnimatePresence>
-          {hoveredEvent && (
-            <EventTooltip
-              event={hoveredEvent}
-              position={tooltipPosition}
-            />
-          )}
-        </AnimatePresence>
       </div>
 
       {/* Logarithmic Minimap */}
@@ -280,9 +373,6 @@ function HistoryArrow({ events, selectedEvent, onEventClick }) {
         <div className="legend-item">
           <span className="legend-span" />
           <span>Time Span</span>
-        </div>
-        <div className="legend-item legend-hint">
-          <span>Scroll to zoom</span>
         </div>
       </div>
     </div>
