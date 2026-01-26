@@ -55,7 +55,7 @@
     transparent 100%
   );
   border-radius: var(--radius-lg);
-  cursor: ns-resize;
+  cursor: crosshair;
 }
 
 .timeline-content {
