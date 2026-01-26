@@ -139,7 +139,7 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
   const clusters = useMemo(() => {
     // Only cluster point events, not spans
     const pointEvents = positionedEvents.filter(e => !e.isSpan)
-    return detectClusters(pointEvents, 3) // 3% threshold
+    return detectClusters(pointEvents, 1.5) // 1.5% threshold - only cluster when really close
   }, [positionedEvents])
 
   // Get IDs of events that are part of clusters
