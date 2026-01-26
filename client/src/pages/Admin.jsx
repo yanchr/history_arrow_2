@@ -13,12 +13,64 @@ const isEventSpan = (event) => {
   return !!event.end_date
 }
 
+// Helper to get a sortable date value from an event
+// Returns "years ago" value - larger numbers = older events
+// This allows proper comparison between astronomical and calendar dates
+const getEventSortValue = (event) => {
+  const currentYear = new Date().getFullYear()
+  
+  if (event.date_type === 'astronomical') {
+    // Astronomical years are stored as "years ago", so use directly
+    // These are typically millions/billions of years ago
+    return event.astronomical_start_year || 0
+  }
+  
+  // For calendar dates, convert to "years ago" format
+  if (event.start_date) {
+    const eventDate = new Date(event.start_date)
+    const eventYear = eventDate.getFullYear()
+    // Calculate years ago (can be negative for future dates, positive for past)
+    // Add fractional year for more precise sorting within the same year
+    const dayOfYear = (eventDate - new Date(eventYear, 0, 0)) / (1000 * 60 * 60 * 24)
+    const yearsAgo = currentYear - eventYear + (1 - dayOfYear / 365)
+    return Math.max(0, yearsAgo) // Ensure non-negative
+  }
+  
+  return 0
+}
+
 function Admin() {
   const { events, loading, error, createEvent, updateEvent, deleteEvent, refetch } = useEvents()
   const [showForm, setShowForm] = useState(false)
   const [editingEvent, setEditingEvent] = useState(null)
   const [actionError, setActionError] = useState('')
   const [actionSuccess, setActionSuccess] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortOrder, setSortOrder] = useState('desc') // 'desc' = newest first, 'asc' = oldest first
+
+  // Filter events based on search query
+  const filteredEvents = events.filter(event => {
+    if (!searchQuery.trim()) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      event.title?.toLowerCase().includes(query) ||
+      event.description?.toLowerCase().includes(query)
+    )
+  })
+
+  // Sort filtered events by start date
+  const sortedEvents = [...filteredEvents].sort((a, b) => {
+    const valueA = getEventSortValue(a)
+    const valueB = getEventSortValue(b)
+    // For 'desc' (newest first): smaller sort values should come first
+    // For 'asc' (oldest first): larger sort values should come first
+    return sortOrder === 'desc' ? valueA - valueB : valueB - valueA
+  })
+
+  // Toggle sort order
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')
+  }
 
   const handleCreate = () => {
     setEditingEvent(null)
@@ -135,6 +187,43 @@ function Admin() {
         )}
       </AnimatePresence>
 
+      <motion.div
+        className="search-container"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+      >
+        <div className="search-input-wrapper">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="search-icon">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search events by title or description..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              className="search-clear-btn"
+              onClick={() => setSearchQuery('')}
+              title="Clear search"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <span className="search-results-count">
+            {filteredEvents.length} {filteredEvents.length === 1 ? 'result' : 'results'} found
+          </span>
+        )}
+      </motion.div>
+
       <div className="admin-stats">
         <div className="stat-card">
           <span className="stat-number">{events.length}</span>
@@ -188,6 +277,18 @@ function Admin() {
               Add Your First Event
             </button>
           </div>
+        ) : filteredEvents.length === 0 ? (
+          <div className="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="empty-icon">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+            <h3>No matching events</h3>
+            <p>Try adjusting your search terms</p>
+            <button className="btn btn-secondary" onClick={() => setSearchQuery('')}>
+              Clear Search
+            </button>
+          </div>
         ) : (
           <table className="events-table">
             <thead>
@@ -196,13 +297,26 @@ function Admin() {
                 <th>Priority</th>
                 <th>Date Type</th>
                 <th>Event Type</th>
-                <th>Start</th>
+                <th className="sortable-header" onClick={toggleSortOrder}>
+                  <span className="header-content">
+                    Start
+                    <span className={`sort-indicator ${sortOrder}`}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        {sortOrder === 'desc' ? (
+                          <path d="M12 5v14M5 12l7 7 7-7" />
+                        ) : (
+                          <path d="M12 19V5M5 12l7-7 7 7" />
+                        )}
+                      </svg>
+                    </span>
+                  </span>
+                </th>
                 <th>End</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {events.map((event, index) => {
+              {sortedEvents.map((event, index) => {
                 const eventIsSpan = isEventSpan(event)
                 const startDateDisplay = formatEventDate(event, false)
                 const endDateDisplay = formatEventDate(event, true)
