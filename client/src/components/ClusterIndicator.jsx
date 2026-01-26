@@ -1,15 +1,19 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import './ClusterIndicator.css'
 
-function ClusterIndicator({ cluster, onClick, isHovered, onHover }) {
-  const { position, count, events, maxPriority } = cluster
+function ClusterIndicator({ cluster, onClick, isHovered, isLocked, onHover }) {
+  const { position, count, maxPriority } = cluster
+
+  // Cluster is "active" (expanded) when either hovered or locked
+  const isActive = isHovered || isLocked
 
   const handleMouseEnter = () => {
     if (onHover) onHover(cluster)
   }
 
   const handleMouseLeave = () => {
-    if (onHover) onHover(null)
+    // Don't clear hover if cluster is locked
+    if (onHover && !isLocked) onHover(null)
   }
 
   const handleClick = (e) => {
@@ -22,12 +26,12 @@ function ClusterIndicator({ cluster, onClick, isHovered, onHover }) {
 
   return (
     <motion.div
-      className={`cluster-indicator priority-${maxPriority} ${isHovered ? 'hovered' : ''}`}
+      className={`cluster-indicator priority-${maxPriority} ${isActive ? 'hovered' : ''} ${isLocked ? 'locked' : ''}`}
       style={{ 
         left: `${position}%`,
-        // Expand hover zone when hovered to cover the spread events
-        width: isHovered ? `${hoverZoneWidth}%` : 'auto',
-        marginLeft: isHovered ? `-${hoverZoneWidth / 2}%` : '0'
+        // Expand hover zone when active to cover the spread events
+        width: isActive ? `${hoverZoneWidth}%` : 'auto',
+        marginLeft: isActive ? `-${hoverZoneWidth / 2}%` : '0'
       }}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
@@ -36,9 +40,9 @@ function ClusterIndicator({ cluster, onClick, isHovered, onHover }) {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
     >
-      {/* The visible badge - fades out on hover to reveal spread events */}
+      {/* The visible badge - fades out when active to reveal spread events */}
       <AnimatePresence>
-        {!isHovered && (
+        {!isActive && (
           <motion.div 
             className="cluster-badge-wrapper"
             initial={{ opacity: 0, scale: 0.8 }}
@@ -59,21 +63,6 @@ function ClusterIndicator({ cluster, onClick, isHovered, onHover }) {
               </svg>
             </div>
             <span className="cluster-label">Events</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Hover hint - shows when hovering */}
-      <AnimatePresence>
-        {isHovered && (
-          <motion.div 
-            className="cluster-hover-hint"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <span className="hint-text">Click to zoom in</span>
           </motion.div>
         )}
       </AnimatePresence>

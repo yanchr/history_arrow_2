@@ -147,22 +147,9 @@
   font-style: italic;
 }
 
-/* Hover hint that shows when cluster is expanded */
-.cluster-hover-hint {
-  position: absolute;
-  bottom: -25px;
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-}
-
-.hint-text {
-  font-size: 0.7rem;
-  color: var(--color-accent);
-  background: var(--color-bg-secondary);
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+/* Visual indicator for locked state */
+.cluster-indicator.locked {
+  z-index: 20;
 }
 
 /* Pulse animation for clusters - only when not hovered */

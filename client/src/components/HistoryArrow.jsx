@@ -28,6 +28,7 @@ const CURRENT_YEAR = new Date().getFullYear()
 function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChange }) {
   const [hoveredEvent, setHoveredEvent] = useState(null)
   const [hoveredCluster, setHoveredCluster] = useState(null)
+  const [lockedCluster, setLockedCluster] = useState(null) // Cluster that stays expanded after click
   const [timelineHover, setTimelineHover] = useState({ active: false, x: 0, yearsAgo: 0 })
   // View state: years ago for the visible range
   // viewStart = closer to present (smaller years ago)
@@ -158,6 +159,10 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
 
   const handleClusterHover = (cluster) => {
     setHoveredCluster(cluster)
+    // When hovering a different cluster, unlock any currently locked cluster
+    if (cluster && lockedCluster && cluster.id !== lockedCluster.id) {
+      setLockedCluster(null)
+    }
   }
 
   // Handle view changes from the minimap
@@ -166,11 +171,28 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
     setViewEnd(Math.min(DEFAULT_MAX_YEARS, newEnd))
   }, [])
 
-  // Handle cluster click to zoom into cluster
+  // Handle cluster click to lock/unlock the expanded state
   const handleClusterClick = useCallback((cluster) => {
-    const { viewStart: newStart, viewEnd: newEnd } = getClusterZoomBounds(cluster)
-    handleViewChange(newStart, newEnd)
-  }, [handleViewChange])
+    if (lockedCluster?.id === cluster.id) {
+      // Already locked - unlock it
+      setLockedCluster(null)
+    } else {
+      // Lock this cluster so events stay visible
+      setLockedCluster(cluster)
+    }
+  }, [lockedCluster])
+
+  // Handle click anywhere on the timeline to unlock cluster
+  // We check what was clicked to decide if we should unlock
+  const handleTimelineClick = useCallback((e) => {
+    // Don't unlock if clicking on a cluster indicator or an event marker
+    const clickedOnCluster = e.target.closest('.cluster-indicator')
+    const clickedOnEvent = e.target.closest('.event-marker')
+    
+    if (lockedCluster && !clickedOnCluster && !clickedOnEvent) {
+      setLockedCluster(null)
+    }
+  }, [lockedCluster])
 
   // Reset view to show all events
   const handleReset = useCallback(() => {
@@ -239,6 +261,7 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
       <div 
         className="timeline-wrapper" 
         ref={timelineRef}
+        onClickCapture={handleTimelineClick}
       >
         <motion.div
           className="timeline-content"
@@ -275,7 +298,7 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
           {/* Event Markers */}
           <div 
             ref={eventsLayerRef}
-            className={`events-layer ${hoveredCluster ? 'has-hovered-cluster' : ''}`}
+            className={`events-layer ${(hoveredCluster || lockedCluster) ? 'has-hovered-cluster' : ''}`}
             onMouseMove={handleTimelineMouseMove}
             onMouseLeave={handleTimelineMouseLeave}
           >
@@ -283,13 +306,16 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
               const isInCluster = clusteredEventIds.has(event.id)
               const showLabel = shouldShowLabel(event, priorityThreshold, clusteredEventIds)
               
-              // Check if this event is in the currently hovered cluster
-              const isInHoveredCluster = hoveredCluster?.events?.some(e => e.id === event.id)
+              // Use locked cluster if set, otherwise hovered cluster
+              const activeCluster = lockedCluster || hoveredCluster
               
-              // Calculate fisheye offset for events in hovered cluster
+              // Check if this event is in the currently active (hovered or locked) cluster
+              const isInHoveredCluster = activeCluster?.events?.some(e => e.id === event.id)
+              
+              // Calculate fisheye offset for events in active cluster
               let fisheyeOffset = 0
-              if (isInHoveredCluster && hoveredCluster) {
-                const clusterEvents = hoveredCluster.events
+              if (isInHoveredCluster && activeCluster) {
+                const clusterEvents = activeCluster.events
                 const eventIndex = clusterEvents.findIndex(e => e.id === event.id)
                 const totalEvents = clusterEvents.length
                 // Spread events evenly around the cluster center
@@ -309,7 +335,7 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
                   isInCluster={isInCluster}
                   isInHoveredCluster={isInHoveredCluster}
                   fisheyeOffset={fisheyeOffset}
-                  isDimmed={hoveredCluster && !isInHoveredCluster}
+                  isDimmed={activeCluster && !isInHoveredCluster}
                 />
               )
             })}
@@ -322,6 +348,7 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
                 onClick={handleClusterClick}
                 onHover={handleClusterHover}
                 isHovered={hoveredCluster?.id === cluster.id}
+                isLocked={lockedCluster?.id === cluster.id}
               />
             ))}
           </div>
