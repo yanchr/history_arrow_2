@@ -21,7 +21,8 @@ function EventForm({ event, onSubmit, onCancel, error }) {
     astronomical_value: '',
     astronomical_unit: 'millions',
     astronomical_end_value: '',
-    astronomical_end_unit: 'millions'
+    astronomical_end_unit: 'millions',
+    priority: 3 // Default to normal priority
   })
   const [validationErrors, setValidationErrors] = useState({})
   const [isSpan, setIsSpan] = useState(false)
@@ -47,7 +48,8 @@ function EventForm({ event, onSubmit, onCancel, error }) {
           astronomical_value: startValues.value.toString(),
           astronomical_unit: startValues.unit,
           astronomical_end_value: endValues.value ? endValues.value.toString() : '',
-          astronomical_end_unit: endValues.unit
+          astronomical_end_unit: endValues.unit,
+          priority: event.priority || 3
         })
         setIsSpan(!!event.astronomical_end_year)
       } else {
@@ -60,7 +62,8 @@ function EventForm({ event, onSubmit, onCancel, error }) {
           astronomical_value: '',
           astronomical_unit: 'millions',
           astronomical_end_value: '',
-          astronomical_end_unit: 'millions'
+          astronomical_end_unit: 'millions',
+          priority: event.priority || 3
         })
         setIsSpan(!!event.end_date)
       }
@@ -181,7 +184,8 @@ function EventForm({ event, onSubmit, onCancel, error }) {
         start_date: formData.start_date,
         end_date: isSpan ? formData.end_date : null,
         astronomical_start_year: null,
-        astronomical_end_year: null
+        astronomical_end_year: null,
+        priority: Number(formData.priority)
       }
     } else {
       const startYears = parseAstronomicalInput(formData.astronomical_value, formData.astronomical_unit)
@@ -196,7 +200,8 @@ function EventForm({ event, onSubmit, onCancel, error }) {
         start_date: null,
         end_date: null,
         astronomical_start_year: startYears,
-        astronomical_end_year: endYears
+        astronomical_end_year: endYears,
+        priority: Number(formData.priority)
       }
     }
 
@@ -254,6 +259,35 @@ function EventForm({ event, onSubmit, onCancel, error }) {
             rows={4}
             disabled={submitting}
           />
+        </div>
+
+        {/* Priority Selector */}
+        <div className="form-group">
+          <label htmlFor="priority" className="form-label">Priority</label>
+          <div className="priority-selector">
+            {[1, 2, 3, 4, 5].map((level) => (
+              <button
+                key={level}
+                type="button"
+                className={`priority-btn priority-${level} ${Number(formData.priority) === level ? 'active' : ''}`}
+                onClick={() => setFormData(prev => ({ ...prev, priority: level }))}
+                disabled={submitting}
+              >
+                {level === 1 && 'Minor'}
+                {level === 2 && 'Low'}
+                {level === 3 && 'Normal'}
+                {level === 4 && 'High'}
+                {level === 5 && 'Major'}
+              </button>
+            ))}
+          </div>
+          <p className="form-hint">
+            {Number(formData.priority) === 5 && 'Major events always show labels on the timeline'}
+            {Number(formData.priority) === 4 && 'High priority events show labels when moderately zoomed'}
+            {Number(formData.priority) === 3 && 'Normal events show labels at standard zoom levels'}
+            {Number(formData.priority) === 2 && 'Low priority events only show labels when zoomed in'}
+            {Number(formData.priority) === 1 && 'Minor events only show labels when fully zoomed in'}
+          </p>
         </div>
 
         {/* Date Type Toggle */}
