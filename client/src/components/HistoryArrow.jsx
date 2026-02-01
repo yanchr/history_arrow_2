@@ -196,8 +196,8 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
 
   // Reset view to show all events
   const handleReset = useCallback(() => {
-    setViewStart(eventBounds.min)
-    setViewEnd(eventBounds.max)
+    setViewStart(DEFAULT_MIN_YEARS)
+    setViewEnd(CURRENT_YEAR)
   }, [eventBounds])
 
   // Handle mouse move over timeline to show current position

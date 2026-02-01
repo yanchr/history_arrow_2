@@ -23,6 +23,7 @@ let mockEvents = [
     astronomical_start_year: 4540000000,
     astronomical_end_year: null,
     priority: 5, // Anchor event
+    image_url: null,
     created_at: new Date().toISOString()
   },
   {
@@ -35,6 +36,7 @@ let mockEvents = [
     astronomical_start_year: 4600000000,
     astronomical_end_year: 4000000000,
     priority: 5, // Anchor event
+    image_url: null,
     created_at: new Date().toISOString()
   },
   {
@@ -47,6 +49,7 @@ let mockEvents = [
     astronomical_start_year: 538000000,
     astronomical_end_year: 485000000,
     priority: 4, // High priority
+    image_url: null,
     created_at: new Date().toISOString()
   },
   {
@@ -59,6 +62,7 @@ let mockEvents = [
     astronomical_start_year: 66000000,
     astronomical_end_year: null,
     priority: 5, // Anchor event
+    image_url: null,
     created_at: new Date().toISOString()
   },
   // Calendar date events
@@ -72,6 +76,7 @@ let mockEvents = [
     astronomical_start_year: null,
     astronomical_end_year: null,
     priority: 2, // Minor event
+    image_url: null,
     created_at: new Date().toISOString()
   },
   {
@@ -84,6 +89,7 @@ let mockEvents = [
     astronomical_start_year: null,
     astronomical_end_year: null,
     priority: 5, // Anchor event
+    image_url: null,
     created_at: new Date().toISOString()
   },
   {
@@ -96,6 +102,7 @@ let mockEvents = [
     astronomical_start_year: null,
     astronomical_end_year: null,
     priority: 4, // High priority
+    image_url: null,
     created_at: new Date().toISOString()
   }
 ]
@@ -213,6 +220,7 @@ router.post('/', async (req, res, next) => {
     const { 
       title, 
       description, 
+      image_url,
       date_type = 'date',
       start_date, 
       end_date,
@@ -230,6 +238,7 @@ router.post('/', async (req, res, next) => {
     const newEvent = {
       title: title.trim(),
       description: description?.trim() || null,
+      image_url: image_url?.trim() || null,
       date_type,
       start_date: date_type === 'date' ? start_date : null,
       end_date: date_type === 'date' ? (end_date || null) : null,
@@ -268,6 +277,7 @@ router.put('/:id', async (req, res, next) => {
     const { 
       title, 
       description, 
+      image_url,
       date_type = 'date',
       start_date, 
       end_date,
@@ -285,6 +295,7 @@ router.put('/:id', async (req, res, next) => {
     const updatedEvent = {
       title: title.trim(),
       description: description?.trim() || null,
+      image_url: image_url?.trim() || null,
       date_type,
       start_date: date_type === 'date' ? start_date : null,
       end_date: date_type === 'date' ? (end_date || null) : null,

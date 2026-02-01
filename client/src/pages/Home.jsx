@@ -101,7 +101,6 @@ const isEventSpan = (event) => {
 function Home() {
   const { events, loading, error } = useEvents()
   const [displayEvents, setDisplayEvents] = useState([])
-  const [activeFilter, setActiveFilter] = useState('all')
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [visibleEvents, setVisibleEvents] = useState([])
 
@@ -132,18 +131,7 @@ function Home() {
     }
   }, [events, loading])
 
-  const filteredEvents = displayEvents.filter(event => {
-    if (activeFilter === 'all') return true
-    if (activeFilter === 'astronomical') return event.date_type === 'astronomical'
-    if (activeFilter === 'historical') return event.date_type === 'date'
-    if (activeFilter === 'points') return !isEventSpan(event)
-    if (activeFilter === 'spans') return isEventSpan(event)
-    return true
-  })
-
-  // Count events by type
-  const astronomicalCount = displayEvents.filter(e => e.date_type === 'astronomical').length
-  const historicalCount = displayEvents.filter(e => e.date_type === 'date').length
+  const filteredEvents = displayEvents
 
   return (
     <div className="home-page">
@@ -158,46 +146,6 @@ function Home() {
           Journey through time with our interactive chronological explorer.
           Hover over events to preview, or click to view details.
         </p>
-      </motion.section>
-
-      <motion.section
-        className="filter-section"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.4 }}
-      >
-        <div className="filter-buttons">
-          <button
-            className={`filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('all')}
-          >
-            All Events ({displayEvents.length})
-          </button>
-          <button
-            className={`filter-btn ${activeFilter === 'astronomical' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('astronomical')}
-          >
-            Astronomical ({astronomicalCount})
-          </button>
-          <button
-            className={`filter-btn ${activeFilter === 'historical' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('historical')}
-          >
-            Historical ({historicalCount})
-          </button>
-          <button
-            className={`filter-btn ${activeFilter === 'points' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('points')}
-          >
-            Point Events
-          </button>
-          <button
-            className={`filter-btn ${activeFilter === 'spans' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('spans')}
-          >
-            Time Spans
-          </button>
-        </div>
       </motion.section>
 
       <motion.section

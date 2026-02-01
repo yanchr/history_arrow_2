@@ -97,6 +97,20 @@
   line-height: 1.3;
 }
 
+.selected-event-image-wrapper {
+  margin-bottom: 1rem;
+}
+
+.selected-event-image {
+  max-width: 100%;
+  max-height: 300px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
 .selected-event-dates {
   display: flex;
   align-items: center;

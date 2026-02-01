@@ -5,7 +5,7 @@ import './SelectedEventDetail.css'
 function SelectedEventDetail({ event, onClose }) {
   if (!event) return null
 
-  const { title, description, date_type } = event
+  const { title, description, image_url, date_type } = event
 
   // Get formatted dates based on event type
   const startDateDisplay = formatEventDate(event, false)
@@ -45,6 +45,16 @@ function SelectedEventDetail({ event, onClose }) {
         </div>
 
         <h2 className="selected-event-title">{title}</h2>
+
+        {image_url && (
+          <div className="selected-event-image-wrapper">
+            <img
+              src={image_url}
+              alt={title}
+              className="selected-event-image"
+            />
+          </div>
+        )}
 
         <div className="selected-event-dates">
           {isSpan && endDateDisplay ? (
