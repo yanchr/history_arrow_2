@@ -207,7 +207,7 @@
 
 .hover-time {
   position: absolute;
-  top: 0px;
+  top: 50px;
   left: 50%;
   transform: translateX(-50%);
   background: var(--color-bg-secondary, #1a1a2e);

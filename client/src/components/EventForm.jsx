@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   validateDateRange, 
@@ -8,13 +8,17 @@ import {
   formatYearsAgo,
   ASTRONOMICAL_UNITS
 } from '../utils/dateUtils'
+import { supabase } from '../utils/supabase'
 import './EventForm.css'
+
+const STORAGE_BUCKET = 'event-images'
 
 function EventForm({ event, onSubmit, onCancel, error }) {
   // Form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    image_url: '',
     date_type: 'date',
     start_date: '',
     end_date: '',
@@ -27,6 +31,9 @@ function EventForm({ event, onSubmit, onCancel, error }) {
   const [validationErrors, setValidationErrors] = useState({})
   const [isSpan, setIsSpan] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState(null)
+  const fileInputRef = useRef(null)
 
   // Initialize form when editing an event
   useEffect(() => {
@@ -42,6 +49,7 @@ function EventForm({ event, onSubmit, onCancel, error }) {
         setFormData({
           title: event.title || '',
           description: event.description || '',
+          image_url: event.image_url || '',
           date_type: 'astronomical',
           start_date: '',
           end_date: '',
@@ -56,6 +64,7 @@ function EventForm({ event, onSubmit, onCancel, error }) {
         setFormData({
           title: event.title || '',
           description: event.description || '',
+          image_url: event.image_url || '',
           date_type: 'date',
           start_date: event.start_date ? event.start_date.split('T')[0] : '',
           end_date: event.end_date ? event.end_date.split('T')[0] : '',
@@ -115,6 +124,48 @@ function EventForm({ event, onSubmit, onCancel, error }) {
         astronomical_end_unit: 'millions'
       }))
     }
+  }
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please select an image file (JPEG, PNG, GIF, WebP)')
+      return
+    }
+    setUploadError(null)
+    setUploading(true)
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      if (!supabaseUrl) {
+        setUploadError('Supabase is not configured. Use the URL field to paste an image link.')
+        return
+      }
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+      if (error) throw error
+      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path)
+      setFormData(prev => ({ ...prev, image_url: data.publicUrl }))
+    } catch (err) {
+      const msg = err.message || 'Upload failed'
+      const isRlsError = msg.toLowerCase().includes('row-level security') || msg.toLowerCase().includes('policy')
+      setUploadError(isRlsError
+        ? 'Storage policy not configured. Run supabase-storage-policies.sql in Supabase SQL Editor, or paste an image URL instead.'
+        : msg)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, image_url: '' }))
+    setUploadError(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const validate = () => {
@@ -180,6 +231,7 @@ function EventForm({ event, onSubmit, onCancel, error }) {
       submitData = {
         title: formData.title,
         description: formData.description,
+        image_url: formData.image_url?.trim() || null,
         date_type: 'date',
         start_date: formData.start_date,
         end_date: isSpan ? formData.end_date : null,
@@ -196,6 +248,7 @@ function EventForm({ event, onSubmit, onCancel, error }) {
       submitData = {
         title: formData.title,
         description: formData.description,
+        image_url: formData.image_url?.trim() || null,
         date_type: 'astronomical',
         start_date: null,
         end_date: null,
@@ -259,6 +312,70 @@ function EventForm({ event, onSubmit, onCancel, error }) {
             rows={4}
             disabled={submitting}
           />
+        </div>
+
+        {/* Picture */}
+        <div className="form-group">
+          <label className="form-label">Picture</label>
+          {formData.image_url ? (
+            <div className="image-preview-container">
+              <img
+                src={formData.image_url}
+                alt="Preview"
+                className="image-preview"
+              />
+              <div className="image-preview-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleRemoveImage}
+                  disabled={submitting}
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="image-upload-options">
+              <div className="image-url-input">
+                <input
+                  id="image_url"
+                  name="image_url"
+                  type="url"
+                  className="form-input"
+                  value={formData.image_url}
+                  onChange={handleChange}
+                  placeholder="Paste image URL..."
+                  disabled={submitting}
+                />
+              </div>
+              <div className="image-upload-divider">or</div>
+              <div className="image-file-upload">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  disabled={submitting || uploading}
+                  className="image-file-input"
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={submitting || uploading}
+                >
+                  {uploading ? 'Uploading...' : 'Upload image'}
+                </button>
+              </div>
+            </div>
+          )}
+          {uploadError && (
+            <span className="form-error">{uploadError}</span>
+          )}
+          <p className="form-hint">
+            Add an optional image. Paste a URL or upload to Supabase Storage (requires event-images bucket).
+          </p>
         </div>
 
         {/* Priority Selector */}

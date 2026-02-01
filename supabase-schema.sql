@@ -1,10 +1,15 @@
--- Supabase Schema for History Arrow
+- Supabase Schema for History Arrow
 -- Run this SQL in your Supabase SQL Editor to set up the database
 
 -- ============================================
--- MIGRATION: If you have an existing database, run this to add priority:
--- ALTER TABLE events ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 3 CHECK (priority >= 1 AND priority <= 5);
--- CREATE INDEX IF NOT EXISTS idx_events_priority ON events(priority);
+-- MIGRATIONS: If you have an existing database, run these as needed:
+-- Add priority:
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 3 CHECK (priority >= 1 AND priority <= 5);
+--   CREATE INDEX IF NOT EXISTS idx_events_priority ON events(priority);
+-- Add image_url:
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url TEXT;
+-- Storage policies (for image uploads):
+--   Run supabase-storage-policies.sql after creating the event-images bucket
 -- ============================================
 
 -- Enable UUID extension
@@ -15,6 +20,7 @@ CREATE TABLE IF NOT EXISTS events (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   description TEXT,
+  image_url TEXT,
   
   -- Date type: 'date' for precise calendar dates, 'astronomical' for years ago
   date_type VARCHAR(20) DEFAULT 'date' CHECK (date_type IN ('date', 'astronomical')),
