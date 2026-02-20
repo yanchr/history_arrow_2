@@ -7,11 +7,10 @@ import './Login.css'
 function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const { signIn, signUp } = useAuth()
+  const { signIn } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -20,13 +19,8 @@ function Login() {
     setLoading(true)
 
     try {
-      if (isSignUp) {
-        await signUp(email, password)
-        setError('Check your email to confirm your account!')
-      } else {
-        await signIn(email, password)
-        navigate('/admin')
-      }
+      await signIn(email, password)
+      navigate('/admin')
     } catch (err) {
       setError(err.message || 'Authentication failed')
     } finally {
@@ -49,18 +43,14 @@ function Login() {
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
           </div>
-          <h1>{isSignUp ? 'Create Account' : 'Admin Login'}</h1>
-          <p>
-            {isSignUp
-              ? 'Sign up to manage historical events'
-              : 'Sign in to access the admin dashboard'}
-          </p>
+          <h1>Admin Login</h1>
+          <p>Sign in to access the admin dashboard</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
           {error && (
             <motion.div
-              className={`form-message ${error.includes('Check your email') ? 'success' : 'error'}`}
+              className="form-message error"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
             >
@@ -108,38 +98,12 @@ function Login() {
                 <span className="loading-dot" />
                 <span className="loading-dot" />
               </span>
-            ) : isSignUp ? (
-              'Create Account'
             ) : (
               'Sign In'
             )}
           </button>
         </form>
-
-        <div className="login-footer">
-          <p>
-            {isSignUp ? 'Already have an account?' : "Don't have an account?"}
-            <button
-              type="button"
-              className="toggle-btn"
-              onClick={() => {
-                setIsSignUp(!isSignUp)
-                setError('')
-              }}
-            >
-              {isSignUp ? 'Sign In' : 'Sign Up'}
-            </button>
-          </p>
-        </div>
       </motion.div>
-
-      <div className="login-info">
-        <h3>Demo Credentials</h3>
-        <p>
-          To test the admin features, set up Supabase and create an account,
-          or use the sample data on the home page.
-        </p>
-      </div>
     </div>
   )
 }
