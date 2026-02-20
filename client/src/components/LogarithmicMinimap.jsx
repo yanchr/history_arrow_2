@@ -18,7 +18,8 @@ function LogarithmicMinimap({
   onViewChange,
   events = [],
   totalMin = DEFAULT_MIN_YEARS,
-  totalMax = DEFAULT_MAX_YEARS
+  totalMax = DEFAULT_MAX_YEARS,
+  labelColorMap = new Map()
 }) {
   const containerRef = useRef(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -40,7 +41,8 @@ function LogarithmicMinimap({
   const eventDots = events.map(event => {
     const yearsAgo = eventToYearsAgo(event)
     const position = yearToLogPosition(yearsAgo, totalMin, totalMax)
-    return { id: event.id, position, title: event.title, priority: event.priority || 3 }
+    const color = labelColorMap.get(event.label) || '#00d4ff'
+    return { id: event.id, position, title: event.title, color }
   })
 
   // Handle mouse down on viewfinder
@@ -176,35 +178,27 @@ function LogarithmicMinimap({
     }
   }, [viewStart, viewEnd, totalMin, onViewChange])
 
-  // Handle zoom in (make viewfinder smaller / narrower range)
+  // Handle zoom in — centered on the linear timeline midpoint
   const handleZoomIn = useCallback(() => {
-    const logStart = Math.log10(viewStart)
-    const logEnd = Math.log10(viewEnd)
-    const currentSpan = logEnd - logStart
-    const zoomFactor = 0.7 // Zoom in by 30%
-
-    const newSpan = Math.max(0.5, currentSpan * zoomFactor)
-    const center = (logStart + logEnd) / 2
+    const center = (viewStart + viewEnd) / 2
+    const halfSpan = (viewEnd - viewStart) / 2
+    const newHalfSpan = halfSpan * 0.7
 
     onViewChange(
-      Math.max(totalMin, Math.pow(10, center - newSpan / 2)),
-      Math.min(totalMax, Math.pow(10, center + newSpan / 2))
+      Math.max(totalMin, center - newHalfSpan),
+      Math.min(totalMax, center + newHalfSpan)
     )
   }, [viewStart, viewEnd, totalMin, totalMax, onViewChange])
 
-  // Handle zoom out (make viewfinder larger / wider range)
+  // Handle zoom out — centered on the linear timeline midpoint
   const handleZoomOut = useCallback(() => {
-    const logStart = Math.log10(viewStart)
-    const logEnd = Math.log10(viewEnd)
-    const currentSpan = logEnd - logStart
-    const zoomFactor = 1.4 // Zoom out by 40%
-
-    const newSpan = Math.min(10, currentSpan * zoomFactor)
-    const center = (logStart + logEnd) / 2
+    const center = (viewStart + viewEnd) / 2
+    const halfSpan = (viewEnd - viewStart) / 2
+    const newHalfSpan = halfSpan * 1.4
 
     onViewChange(
-      Math.max(totalMin, Math.pow(10, center - newSpan / 2)),
-      Math.min(totalMax, Math.pow(10, center + newSpan / 2))
+      Math.max(totalMin, center - newHalfSpan),
+      Math.min(totalMax, center + newHalfSpan)
     )
   }, [viewStart, viewEnd, totalMin, totalMax, onViewChange])
 
@@ -347,8 +341,8 @@ function LogarithmicMinimap({
           {eventDots.map(dot => (
             <div
               key={dot.id}
-              className={`minimap-event-dot priority-${dot.priority}`}
-              style={{ left: `${dot.position}%` }}
+              className="minimap-event-dot"
+              style={{ left: `${dot.position}%`, backgroundColor: dot.color }}
               title={dot.title}
             />
           ))}

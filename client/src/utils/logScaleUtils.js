@@ -7,7 +7,7 @@
  */
 
 // Default bounds for the timeline
-export const DEFAULT_MIN_YEARS = 1 // 1 year ago (minimum)
+export const DEFAULT_MIN_YEARS = 0.001 // ~now (minimum)
 export const DEFAULT_MAX_YEARS = 5e9 // 5 billion years ago (maximum)
 
 /**

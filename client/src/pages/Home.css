@@ -64,6 +64,56 @@
   color: white;
 }
 
+/* Label Filter Bar */
+.label-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.label-filter-bar .filter-label-text {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  margin-right: 0.25rem;
+}
+
+.label-filter-chip {
+  padding: 0.4rem 0.85rem;
+  background: var(--color-bg-secondary);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.label-filter-chip:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.label-filter-chip.active {
+  color: white;
+}
+
+.event-label-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
 /* Timeline Section */
 .timeline-section {
   margin-bottom: 3rem;
@@ -112,7 +162,76 @@
 
 .events-list-section h2 {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
+  color: var(--color-text);
+}
+
+/* Search Bar */
+.search-bar-wrapper {
+  position: relative;
+  max-width: 480px;
+  margin: 0 auto 2rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 2.75rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-family: var(--font-body);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+}
+
+.search-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  border-radius: 50%;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.search-clear-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.search-clear-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
   color: var(--color-text);
 }
 
@@ -127,6 +246,7 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
+  cursor: pointer;
   transition: all var(--transition-normal);
 }
 
@@ -134,6 +254,16 @@
   border-color: var(--color-accent);
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+}
+
+.event-card--selected {
+  border-color: var(--color-accent);
+  background: var(--color-bg-tertiary);
+  box-shadow: 0 0 0 2px var(--color-accent-light), 0 8px 30px rgba(99, 102, 241, 0.2);
+}
+
+.event-card--selected:hover {
+  box-shadow: 0 0 0 2px var(--color-accent-light), 0 8px 30px rgba(99, 102, 241, 0.25);
 }
 
 .event-card-header {
@@ -205,6 +335,33 @@
 
 .date-arrow {
   opacity: 0.5;
+}
+
+/* Edit Modal (reused from Admin) */
+.home-page .form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+  backdrop-filter: blur(4px);
+}
+
+.home-page .form-modal {
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--color-bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Responsive */

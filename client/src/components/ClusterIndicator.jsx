@@ -1,19 +1,15 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import './ClusterIndicator.css'
 
-function ClusterIndicator({ cluster, onClick, isHovered, isLocked, onHover }) {
-  const { position, count, maxPriority } = cluster
-
-  // Cluster is "active" (expanded) when either hovered or locked
-  const isActive = isHovered || isLocked
+function ClusterIndicator({ cluster, onClick, isHovered, onHover }) {
+  const { position, count } = cluster
 
   const handleMouseEnter = () => {
     if (onHover) onHover(cluster)
   }
 
   const handleMouseLeave = () => {
-    // Don't clear hover if cluster is locked
-    if (onHover && !isLocked) onHover(null)
+    if (onHover) onHover(null)
   }
 
   const handleClick = (e) => {
@@ -21,17 +17,15 @@ function ClusterIndicator({ cluster, onClick, isHovered, isLocked, onHover }) {
     if (onClick) onClick(cluster)
   }
 
-  // Calculate hover zone width based on number of events
-  const hoverZoneWidth = Math.min(20, count * 5) // Max 20% width for hover zone
+  const hoverZoneWidth = Math.min(20, count * 5)
 
   return (
     <motion.div
-      className={`cluster-indicator priority-${maxPriority} ${isActive ? 'hovered' : ''} ${isLocked ? 'locked' : ''}`}
+      className={`cluster-indicator ${isHovered ? 'hovered' : ''}`}
       style={{ 
         left: `${position}%`,
-        // Expand hover zone when active to cover the spread events
-        width: isActive ? `${hoverZoneWidth}%` : 'auto',
-        marginLeft: isActive ? `-${hoverZoneWidth / 2}%` : '0'
+        width: isHovered ? `${hoverZoneWidth}%` : 'auto',
+        marginLeft: isHovered ? `-${hoverZoneWidth / 2}%` : '0'
       }}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
@@ -40,9 +34,8 @@ function ClusterIndicator({ cluster, onClick, isHovered, isLocked, onHover }) {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
     >
-      {/* The visible badge - fades out when active to reveal spread events */}
       <AnimatePresence>
-        {!isActive && (
+        {!isHovered && (
           <motion.div 
             className="cluster-badge-wrapper"
             initial={{ opacity: 0, scale: 0.8 }}
