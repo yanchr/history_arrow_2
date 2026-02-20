@@ -11,9 +11,10 @@ function EventMarker({
   isInCluster = false,
   isInHoveredCluster = false,
   fisheyeOffset = 0,
-  isDimmed = false
+  isDimmed = false,
+  labelColor = null
 }) {
-  const { startPos, endPos, isSpan, title, priority = 3 } = event
+  const { startPos, endPos, isSpan, title } = event
 
   const handleMouseEnter = () => {
     onHover(event)
@@ -36,10 +37,11 @@ function EventMarker({
 
     return (
       <motion.div
-        className={`event-span ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''} ${isDimmed ? 'dimmed' : ''} priority-${priority}`}
+        className={`event-span ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''} ${isDimmed ? 'dimmed' : ''}`}
         style={{
           left: `${startPos}%`,
-          width: `${width}%`
+          width: `${width}%`,
+          '--label-color': labelColor || '#00d4ff'
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -51,9 +53,9 @@ function EventMarker({
         transition={{ duration: 0.3, ease: 'easeOut' }}
       >
         <div className="span-body">
-          <div className="span-start-cap" />
-          <div className="span-fill" />
-          <div className="span-end-cap" />
+          <div className="span-cap span-cap-start" />
+          <div className="span-line" />
+          <div className="span-cap span-cap-end" />
         </div>
         <AnimatePresence>
           {(showLabel || isHovered || isSelected) && !isDimmed && (
@@ -83,8 +85,8 @@ function EventMarker({
   // Render as a point marker
   return (
     <motion.div
-      className={`event-point ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''} ${isInHoveredCluster ? 'fisheye-active' : ''} ${isDimmed ? 'dimmed' : ''} priority-${priority}`}
-      style={{ left: `${actualPosition}%` }}
+      className={`event-point ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''} ${isInHoveredCluster ? 'fisheye-active' : ''} ${isDimmed ? 'dimmed' : ''}`}
+      style={{ left: `${actualPosition}%`, '--label-color': labelColor || '#00d4ff' }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}

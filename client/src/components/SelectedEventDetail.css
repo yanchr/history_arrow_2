@@ -61,6 +61,40 @@
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+.selected-event-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.edit-btn {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-btn:hover {
+  background: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.edit-btn svg {
+  width: 18px;
+  height: 18px;
+  color: #60a5fa;
+  transition: color 0.2s ease;
+}
+
+.edit-btn:hover svg {
+  color: #93c5fd;
+}
+
 .close-btn {
   background: rgba(100, 116, 139, 0.2);
   border: 1px solid rgba(148, 163, 184, 0.2);

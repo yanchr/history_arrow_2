@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { motion } from 'framer-motion'
 import EventMarker from './EventMarker'
 import ClusterIndicator from './ClusterIndicator'
@@ -16,27 +16,37 @@ import {
 import {
   detectClusters,
   getClusteredEventIds,
-  getPriorityThreshold,
   shouldShowLabel,
   getClusterZoomBounds
 } from '../utils/clusterUtils'
 import './HistoryArrow.css'
 
-// Current year for calculating calendar years
-const CURRENT_YEAR = new Date().getFullYear()
+// Current date as a fractional year (e.g. 2026.14 for mid-February 2026)
+const NOW = new Date()
+const YEAR_START = new Date(NOW.getFullYear(), 0, 1)
+const YEAR_END = new Date(NOW.getFullYear() + 1, 0, 1)
+const CURRENT_YEAR = NOW.getFullYear() + (NOW - YEAR_START) / (YEAR_END - YEAR_START)
 
-function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChange }) {
+const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChange, labelColorMap = new Map() }, ref) {
   const [hoveredEvent, setHoveredEvent] = useState(null)
   const [hoveredCluster, setHoveredCluster] = useState(null)
-  const [lockedCluster, setLockedCluster] = useState(null) // Cluster that stays expanded after click
   const [timelineHover, setTimelineHover] = useState({ active: false, x: 0, yearsAgo: 0 })
   // View state: years ago for the visible range
   // viewStart = closer to present (smaller years ago)
   // viewEnd = further in past (larger years ago)
-  const [viewStart, setViewStart] = useState(1) // 1 year ago
+  const [viewStart, setViewStart] = useState(DEFAULT_MIN_YEARS)
   const [viewEnd, setViewEnd] = useState(CURRENT_YEAR) // Default to year 0 (2026 years ago)
   const timelineRef = useRef(null)
   const eventsLayerRef = useRef(null)
+
+  useImperativeHandle(ref, () => ({
+    centerOnEvent(event) {
+      const yearsAgo = eventToYearsAgo(event)
+      const newEnd = Math.min(yearsAgo * 2, DEFAULT_MAX_YEARS)
+      setViewStart(DEFAULT_MIN_YEARS)
+      setViewEnd(newEnd)
+    }
+  }))
 
   // Calculate the overall bounds from events
   const eventBounds = useMemo(() => {
@@ -148,21 +158,12 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
     return getClusteredEventIds(clusters)
   }, [clusters])
 
-  // Calculate priority threshold based on zoom level
-  const priorityThreshold = useMemo(() => {
-    return getPriorityThreshold(viewStart, viewEnd, DEFAULT_MIN_YEARS, DEFAULT_MAX_YEARS)
-  }, [viewStart, viewEnd])
-
   const handleEventHover = (event) => {
     setHoveredEvent(event)
   }
 
   const handleClusterHover = (cluster) => {
     setHoveredCluster(cluster)
-    // When hovering a different cluster, unlock any currently locked cluster
-    if (cluster && lockedCluster && cluster.id !== lockedCluster.id) {
-      setLockedCluster(null)
-    }
   }
 
   // Handle view changes from the minimap
@@ -171,28 +172,12 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
     setViewEnd(Math.min(DEFAULT_MAX_YEARS, newEnd))
   }, [])
 
-  // Handle cluster click to lock/unlock the expanded state
   const handleClusterClick = useCallback((cluster) => {
-    if (lockedCluster?.id === cluster.id) {
-      // Already locked - unlock it
-      setLockedCluster(null)
-    } else {
-      // Lock this cluster so events stay visible
-      setLockedCluster(cluster)
-    }
-  }, [lockedCluster])
-
-  // Handle click anywhere on the timeline to unlock cluster
-  // We check what was clicked to decide if we should unlock
-  const handleTimelineClick = useCallback((e) => {
-    // Don't unlock if clicking on a cluster indicator or an event marker
-    const clickedOnCluster = e.target.closest('.cluster-indicator')
-    const clickedOnEvent = e.target.closest('.event-marker')
-    
-    if (lockedCluster && !clickedOnCluster && !clickedOnEvent) {
-      setLockedCluster(null)
-    }
-  }, [lockedCluster])
+    setHoveredCluster(null)
+    const { viewStart: newStart, viewEnd: newEnd } = getClusterZoomBounds(cluster)
+    setViewStart(Math.max(DEFAULT_MIN_YEARS, newStart))
+    setViewEnd(Math.min(DEFAULT_MAX_YEARS, newEnd))
+  }, [])
 
   // Reset view to show all events
   const handleReset = useCallback(() => {
@@ -222,18 +207,28 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
     setTimelineHover(prev => ({ ...prev, active: false }))
   }, [])
 
-  // Format the hover position as year or "years ago"
   const formatHoverTime = (yearsAgo) => {
-    // If within the last ~2026 years (after year 0), show the calendar year
     if (yearsAgo <= CURRENT_YEAR) {
-      const year = Math.round(CURRENT_YEAR - yearsAgo)
+      const fractionalYear = CURRENT_YEAR - yearsAgo
+      const year = Math.floor(fractionalYear)
+
+      if (year >= 2000) {
+        const startOfYear = new Date(year, 0, 1)
+        const endOfYear = new Date(year + 1, 0, 1)
+        const msInYear = endOfYear - startOfYear
+        const dayOffset = (fractionalYear - year) * msInYear
+        const date = new Date(startOfYear.getTime() + dayOffset)
+        const dd = String(date.getDate()).padStart(2, '0')
+        const mm = String(date.getMonth() + 1).padStart(2, '0')
+        return `${dd}.${mm}.${date.getFullYear()}`
+      }
+
       if (year < 0) {
         return `${Math.abs(year)} BCE`
       }
       return `${year} CE`
     }
     
-    // Otherwise show "years ago" format
     if (yearsAgo >= 1e9) {
       return `${(yearsAgo / 1e9).toFixed(2)} billion years ago`
     } else if (yearsAgo >= 1e6) {
@@ -261,7 +256,6 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
       <div 
         className="timeline-wrapper" 
         ref={timelineRef}
-        onClickCapture={handleTimelineClick}
       >
         <motion.div
           className="timeline-content"
@@ -298,16 +292,16 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
           {/* Event Markers */}
           <div 
             ref={eventsLayerRef}
-            className={`events-layer ${(hoveredCluster || lockedCluster) ? 'has-hovered-cluster' : ''}`}
+            className={`events-layer ${hoveredCluster ? 'has-hovered-cluster' : ''}`}
             onMouseMove={handleTimelineMouseMove}
             onMouseLeave={handleTimelineMouseLeave}
           >
             {positionedEvents.map(event => {
               const isInCluster = clusteredEventIds.has(event.id)
-              const showLabel = shouldShowLabel(event, priorityThreshold, clusteredEventIds)
+              const showLabel = shouldShowLabel(event, clusteredEventIds)
+              const eventLabelColor = labelColorMap.get(event.label) || null
               
-              // Use locked cluster if set, otherwise hovered cluster
-              const activeCluster = lockedCluster || hoveredCluster
+              const activeCluster = hoveredCluster
               
               // Check if this event is in the currently active (hovered or locked) cluster
               const isInHoveredCluster = activeCluster?.events?.some(e => e.id === event.id)
@@ -336,6 +330,7 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
                   isInHoveredCluster={isInHoveredCluster}
                   fisheyeOffset={fisheyeOffset}
                   isDimmed={activeCluster && !isInHoveredCluster}
+                  labelColor={eventLabelColor}
                 />
               )
             })}
@@ -348,7 +343,6 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
                 onClick={handleClusterClick}
                 onHover={handleClusterHover}
                 isHovered={hoveredCluster?.id === cluster.id}
-                isLocked={lockedCluster?.id === cluster.id}
               />
             ))}
           </div>
@@ -389,6 +383,7 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
         events={events}
         totalMin={DEFAULT_MIN_YEARS}
         totalMax={DEFAULT_MAX_YEARS}
+        labelColorMap={labelColorMap}
       />
 
       {/* Timeline Legend */}
@@ -404,6 +399,6 @@ function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChan
       </div>
     </div>
   )
-}
+})
 
 export default HistoryArrow

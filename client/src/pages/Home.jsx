@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import HistoryArrow from '../components/HistoryArrow'
 import SelectedEventDetail from '../components/SelectedEventDetail'
 import { useEvents } from '../hooks/useEvents'
+import { useAuth } from '../hooks/useAuth'
+import { useLabels } from '../hooks/useLabels'
+import EventForm from '../components/EventForm'
 import { formatEventDate } from '../utils/dateUtils'
 import './Home.css'
 
-// Sample events for demonstration (using the new date_type format)
-// Priority scale: 1=Minor, 2=Low, 3=Normal, 4=High, 5=Major/Anchor
 const sampleEvents = [
-  // Astronomical events (billions/millions of years ago)
   {
     id: 1,
     title: 'Formation of Earth',
@@ -19,7 +19,7 @@ const sampleEvents = [
     end_date: null,
     astronomical_start_year: 4540000000,
     astronomical_end_year: null,
-    priority: 5 // Major anchor event
+    label: 'nature'
   },
   {
     id: 2,
@@ -30,7 +30,7 @@ const sampleEvents = [
     end_date: null,
     astronomical_start_year: 4600000000,
     astronomical_end_year: 4000000000,
-    priority: 5 // Major anchor event
+    label: 'nature'
   },
   {
     id: 3,
@@ -41,7 +41,7 @@ const sampleEvents = [
     end_date: null,
     astronomical_start_year: 538000000,
     astronomical_end_year: 485000000,
-    priority: 4 // High priority
+    label: 'nature'
   },
   {
     id: 4,
@@ -52,9 +52,8 @@ const sampleEvents = [
     end_date: null,
     astronomical_start_year: 66000000,
     astronomical_end_year: null,
-    priority: 5 // Major anchor event
+    label: 'nature'
   },
-  // Calendar date events
   {
     id: 5,
     title: 'Invention of the Lightbulb',
@@ -64,7 +63,7 @@ const sampleEvents = [
     end_date: null,
     astronomical_start_year: null,
     astronomical_end_year: null,
-    priority: 2 // Low priority
+    label: 'discovery'
   },
   {
     id: 6,
@@ -75,7 +74,7 @@ const sampleEvents = [
     end_date: '1945-09-02',
     astronomical_start_year: null,
     astronomical_end_year: null,
-    priority: 5 // Major anchor event
+    label: 'war'
   },
   {
     id: 7,
@@ -86,7 +85,7 @@ const sampleEvents = [
     end_date: null,
     astronomical_start_year: null,
     astronomical_end_year: null,
-    priority: 4 // High priority
+    label: 'discovery'
   }
 ]
 
@@ -99,20 +98,58 @@ const isEventSpan = (event) => {
 }
 
 function Home() {
-  const { events, loading, error } = useEvents()
+  const { events, loading, error, updateEvent } = useEvents()
+  const { isAuthenticated } = useAuth()
+  const { labels, labelColorMap } = useLabels()
   const [displayEvents, setDisplayEvents] = useState([])
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [visibleEvents, setVisibleEvents] = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activeLabels, setActiveLabels] = useState([])
+  const [editingEvent, setEditingEvent] = useState(null)
+  const [editError, setEditError] = useState('')
+  const timelineRef = useRef(null)
 
   // Handle event click to select/deselect
   const handleEventClick = (event) => {
-    // Toggle selection - if same event clicked, deselect it
     setSelectedEvent(prev => prev?.id === event.id ? null : event)
   }
+
+  // Handle click from event card — select + center timeline
+  const handleEventCardClick = useCallback((event) => {
+    const isDeselecting = selectedEvent?.id === event.id
+    setSelectedEvent(isDeselecting ? null : event)
+    if (!isDeselecting) {
+      timelineRef.current?.centerOnEvent(event)
+    }
+  }, [selectedEvent])
 
   // Close selected event detail
   const handleCloseSelectedEvent = () => {
     setSelectedEvent(null)
+  }
+
+  const handleEditEvent = useCallback((event) => {
+    setEditingEvent(event)
+    setEditError('')
+  }, [])
+
+  const handleEditSubmit = async (formData) => {
+    try {
+      setEditError('')
+      const updated = await updateEvent(editingEvent.id, formData)
+      setEditingEvent(null)
+      if (selectedEvent?.id === updated.id) {
+        setSelectedEvent(updated)
+      }
+    } catch (err) {
+      setEditError(err.message)
+    }
+  }
+
+  const handleEditCancel = () => {
+    setEditingEvent(null)
+    setEditError('')
   }
 
   // Handle visible events change from timeline
@@ -122,8 +159,13 @@ function Home() {
     setVisibleEvents(sorted)
   }
 
+  const toggleLabel = useCallback((label) => {
+    setActiveLabels(prev =>
+      prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label]
+    )
+  }, [])
+
   useEffect(() => {
-    // Use fetched events if available, otherwise show sample data
     if (events && events.length > 0) {
       setDisplayEvents(events)
     } else if (!loading) {
@@ -131,7 +173,23 @@ function Home() {
     }
   }, [events, loading])
 
-  const filteredEvents = displayEvents
+  const filteredEvents = useMemo(() => {
+    if (activeLabels.length === 0) return displayEvents
+    return displayEvents.filter(e => {
+      if (!e.label && activeLabels.includes('__none__')) return true
+      return e.label && activeLabels.includes(e.label)
+    })
+  }, [displayEvents, activeLabels])
+
+  const searchFilteredEvents = useMemo(() => {
+    const base = filteredEvents
+    if (!searchQuery.trim()) return base
+    const query = searchQuery.toLowerCase()
+    return base.filter(event =>
+      event.title.toLowerCase().includes(query) ||
+      (event.description && event.description.toLowerCase().includes(query))
+    )
+  }, [filteredEvents, searchQuery])
 
   return (
     <div className="home-page">
@@ -147,6 +205,39 @@ function Home() {
           Hover over events to preview, or click to view details.
         </p>
       </motion.section>
+
+      <div className="label-filter-bar">
+        <span className="filter-label-text">Filter:</span>
+        <button
+          className={`label-filter-chip ${activeLabels.includes('__none__') ? 'active' : ''}`}
+          style={activeLabels.includes('__none__') ? { borderColor: '#6b7280', background: 'rgba(107, 114, 128, 0.2)', color: '#6b7280' } : {}}
+          onClick={() => toggleLabel('__none__')}
+        >
+          None
+        </button>
+        {labels.map((l) => {
+          const isActive = activeLabels.includes(l.name)
+          return (
+            <button
+              key={l.name}
+              className={`label-filter-chip ${isActive ? 'active' : ''}`}
+              style={isActive ? { borderColor: l.color, background: `${l.color}20`, color: l.color } : {}}
+              onClick={() => toggleLabel(l.name)}
+            >
+              {l.name}
+            </button>
+          )
+        })}
+        {activeLabels.length > 0 && (
+          <button
+            className="label-filter-chip"
+            onClick={() => setActiveLabels([])}
+            style={{ fontStyle: 'italic', opacity: 0.7 }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
 
       <motion.section
         className="timeline-section"
@@ -164,11 +255,13 @@ function Home() {
             <p>Using sample data (API not connected)</p>
           </div>
         ) : (
-          <HistoryArrow 
+          <HistoryArrow
+            ref={timelineRef}
             events={filteredEvents} 
             selectedEvent={selectedEvent}
             onEventClick={handleEventClick}
             onVisibleEventsChange={handleVisibleEventsChange}
+            labelColorMap={labelColorMap}
           />
         )}
       </motion.section>
@@ -186,8 +279,37 @@ function Home() {
             <SelectedEventDetail 
               event={selectedEvent} 
               onClose={handleCloseSelectedEvent}
+              onEdit={isAuthenticated ? handleEditEvent : undefined}
             />
           </motion.section>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {editingEvent && (
+          <motion.div
+            className="form-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleEditCancel}
+          >
+            <motion.div
+              className="form-modal"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <EventForm
+                event={editingEvent}
+                onSubmit={handleEditSubmit}
+                onCancel={handleEditCancel}
+                error={editError}
+                labels={labels}
+              />
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -197,9 +319,29 @@ function Home() {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6, duration: 0.4 }}
       >
-        <h2>Visible Events ({visibleEvents.length})</h2>
+        <h2>All Events ({searchFilteredEvents.length})</h2>
+        <div className="search-bar-wrapper">
+          <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search events..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button className="search-clear-btn" onClick={() => setSearchQuery('')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
         <div className="events-grid">
-          {visibleEvents.map((event, index) => {
+          {searchFilteredEvents.map((event, index) => {
             const eventIsSpan = isEventSpan(event)
             const startDateDisplay = formatEventDate(event, false)
             const endDateDisplay = formatEventDate(event, true)
@@ -207,10 +349,11 @@ function Home() {
             return (
               <motion.div
                 key={event.id}
-                className="event-card"
+                className={`event-card ${selectedEvent?.id === event.id ? 'event-card--selected' : ''}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(0.1 * index, 0.5), duration: 0.3 }}
+                onClick={() => handleEventCardClick(event)}
               >
                 <div className="event-card-header">
                   <div className="event-badges">
@@ -220,6 +363,19 @@ function Home() {
                     <span className={`event-type-badge ${eventIsSpan ? 'span' : 'point'}`}>
                       {eventIsSpan ? 'Span' : 'Point'}
                     </span>
+                    {event.label && (() => {
+                      const color = labelColorMap.get(event.label)
+                      return color ? (
+                        <span
+                          className="event-label-badge"
+                          style={{ background: `${color}20`, color }}
+                        >
+                          {event.label}
+                        </span>
+                      ) : (
+                        <span className="event-label-badge">{event.label}</span>
+                      )
+                    })()}
                   </div>
                   <h3>{event.title}</h3>
                 </div>

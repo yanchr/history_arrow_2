@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
 import eventsRouter from './routes/events.js'
+import labelsRouter from './routes/labels.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
 // Load environment variables
@@ -37,6 +38,7 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/events', eventsRouter)
+app.use('/api/labels', labelsRouter)
 
 // Error handling
 app.use(errorHandler)
