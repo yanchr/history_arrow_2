@@ -36,25 +36,6 @@
   transition: all 0.2s ease;
 }
 
-/* Priority-based colors */
-.cluster-indicator.priority-5 .cluster-badge {
-  background: linear-gradient(135deg, #ef4444, #f97316);
-  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4);
-}
-
-.cluster-indicator.priority-5.hovered .cluster-badge {
-  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.6);
-}
-
-.cluster-indicator.priority-4 .cluster-badge {
-  background: linear-gradient(135deg, #f59e0b, #eab308);
-  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);
-}
-
-.cluster-indicator.priority-4.hovered .cluster-badge {
-  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.6);
-}
-
 .cluster-count {
   font-size: 0.85rem;
   font-weight: 700;
@@ -166,14 +147,6 @@
   opacity: 0;
   animation: clusterPulse 2s ease-out infinite;
   pointer-events: none;
-}
-
-.cluster-indicator.priority-5 .cluster-badge-wrapper::before {
-  background: #ef4444;
-}
-
-.cluster-indicator.priority-4 .cluster-badge-wrapper::before {
-  background: #f59e0b;
 }
 
 @keyframes clusterPulse {

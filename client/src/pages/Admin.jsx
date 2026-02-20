@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEvents } from '../hooks/useEvents'
+import { useLabels } from '../hooks/useLabels'
 import EventForm from '../components/EventForm'
 import { formatEventDate } from '../utils/dateUtils'
 import './Admin.css'
@@ -41,12 +42,17 @@ const getEventSortValue = (event) => {
 
 function Admin() {
   const { events, loading, error, createEvent, updateEvent, deleteEvent, refetch } = useEvents()
+  const { labels, createLabel, deleteLabel, labelColorMap } = useLabels()
   const [showForm, setShowForm] = useState(false)
   const [editingEvent, setEditingEvent] = useState(null)
   const [actionError, setActionError] = useState('')
   const [actionSuccess, setActionSuccess] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortOrder, setSortOrder] = useState('desc') // 'desc' = newest first, 'asc' = oldest first
+  const [sortOrder, setSortOrder] = useState('desc')
+  const [showLabelForm, setShowLabelForm] = useState(false)
+  const [newLabelName, setNewLabelName] = useState('')
+  const [newLabelColor, setNewLabelColor] = useState('#6b7280')
+  const [labelError, setLabelError] = useState('')
 
   // Filter events based on search query
   const filteredEvents = events.filter(event => {
@@ -181,6 +187,7 @@ function Admin() {
                 onSubmit={handleFormSubmit}
                 onCancel={handleFormCancel}
                 error={actionError}
+                labels={labels}
               />
             </motion.div>
           </motion.div>
@@ -247,6 +254,111 @@ function Admin() {
         </div>
       </div>
 
+      {/* Label Management */}
+      <motion.div
+        className="label-management"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.15 }}
+      >
+        <div className="label-management-header">
+          <h2>Labels</h2>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => { setShowLabelForm(!showLabelForm); setLabelError('') }}
+          >
+            {showLabelForm ? 'Cancel' : '+ Add Label'}
+          </button>
+        </div>
+
+        {labelError && (
+          <div className="action-message error" style={{ marginBottom: '0.75rem' }}>{labelError}</div>
+        )}
+
+        <AnimatePresence>
+          {showLabelForm && (
+            <motion.div
+              className="label-add-form"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Label name"
+                value={newLabelName}
+                onChange={(e) => setNewLabelName(e.target.value)}
+              />
+              <input
+                type="color"
+                className="color-picker"
+                value={newLabelColor}
+                onChange={(e) => setNewLabelColor(e.target.value)}
+              />
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={async () => {
+                  try {
+                    setLabelError('')
+                    await createLabel(newLabelName, newLabelColor)
+                    setNewLabelName('')
+                    setNewLabelColor('#6b7280')
+                    setShowLabelForm(false)
+                  } catch (err) {
+                    setLabelError(err.message)
+                  }
+                }}
+                disabled={!newLabelName.trim()}
+              >
+                Save
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="label-chips">
+          {labels.map((label) => {
+            const eventCount = events.filter(e => e.label === label.name).length
+            return (
+              <div
+                key={label.id}
+                className="label-chip"
+                style={{ borderColor: label.color, background: `${label.color}15` }}
+              >
+                <span className="label-chip-dot" style={{ backgroundColor: label.color }} />
+                <span className="label-chip-name">{label.name}</span>
+                <span className="label-chip-count">{eventCount}</span>
+                <button
+                  className="label-chip-delete"
+                  title={`Delete "${label.name}" label`}
+                  onClick={async () => {
+                    const msg = eventCount > 0
+                      ? `This will remove the label from ${eventCount} event(s). Continue?`
+                      : `Delete the "${label.name}" label?`
+                    if (!window.confirm(msg)) return
+                    try {
+                      setLabelError('')
+                      await deleteLabel(label.id)
+                      await refetch()
+                    } catch (err) {
+                      setLabelError(err.message)
+                    }
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )
+          })}
+          {labels.length === 0 && (
+            <span className="label-chips-empty">No labels yet. Add one above.</span>
+          )}
+        </div>
+      </motion.div>
+
       <motion.div
         className="events-table-container"
         initial={{ opacity: 0 }}
@@ -294,7 +406,7 @@ function Admin() {
             <thead>
               <tr>
                 <th>Title</th>
-                <th>Priority</th>
+                <th>Label</th>
                 <th>Date Type</th>
                 <th>Event Type</th>
                 <th className="sortable-header" onClick={toggleSortOrder}>
@@ -337,13 +449,19 @@ function Admin() {
                       </div>
                     </td>
                     <td>
-                      <span className={`priority-badge priority-${event.priority || 3}`}>
-                        {event.priority === 5 && 'Major'}
-                        {event.priority === 4 && 'High'}
-                        {(event.priority === 3 || !event.priority) && 'Normal'}
-                        {event.priority === 2 && 'Low'}
-                        {event.priority === 1 && 'Minor'}
-                      </span>
+                      {event.label ? (
+                        <span
+                          className="label-badge"
+                          style={{
+                            background: `${labelColorMap.get(event.label) || '#6b7280'}20`,
+                            color: labelColorMap.get(event.label) || '#6b7280'
+                          }}
+                        >
+                          {event.label}
+                        </span>
+                      ) : (
+                        <span className="label-badge label-none">None</span>
+                      )}
                     </td>
                     <td>
                       <span className={`type-badge ${event.date_type === 'astronomical' ? 'astronomical' : 'historical'}`}>
