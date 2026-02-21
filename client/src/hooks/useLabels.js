@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { getAuthHeaders } from '../utils/supabase'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
 
@@ -27,9 +28,10 @@ export function useLabels() {
   }, [fetchLabels])
 
   const createLabel = async (name, color) => {
+    const auth = await getAuthHeaders()
     const response = await fetch(`${API_URL}/api/labels`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...auth },
       body: JSON.stringify({ name, color })
     })
     if (!response.ok) {
@@ -41,9 +43,27 @@ export function useLabels() {
     return newLabel
   }
 
-  const deleteLabel = async (id) => {
+  const updateLabel = async (id, { name, color }) => {
+    const auth = await getAuthHeaders()
     const response = await fetch(`${API_URL}/api/labels/${id}`, {
-      method: 'DELETE'
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...auth },
+      body: JSON.stringify({ name, color })
+    })
+    if (!response.ok) {
+      const err = await response.json()
+      throw new Error(err.error || 'Failed to update label')
+    }
+    const updated = await response.json()
+    setLabels(prev => prev.map(l => l.id === id ? updated : l))
+    return updated
+  }
+
+  const deleteLabel = async (id) => {
+    const auth = await getAuthHeaders()
+    const response = await fetch(`${API_URL}/api/labels/${id}`, {
+      method: 'DELETE',
+      headers: auth
     })
     if (!response.ok) {
       const err = await response.json()
@@ -64,6 +84,7 @@ export function useLabels() {
     error,
     refetch: fetchLabels,
     createLabel,
+    updateLabel,
     deleteLabel,
     labelColorMap
   }

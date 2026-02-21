@@ -399,6 +399,92 @@
   border-radius: 999px;
 }
 
+.label-chip--clickable {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.label-chip--clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.label-chip--editing {
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.label-edit-color {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+  flex-shrink: 0;
+}
+
+.label-edit-color::-webkit-color-swatch-wrapper {
+  padding: 1px;
+}
+
+.label-edit-color::-webkit-color-swatch {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+.label-edit-name {
+  width: 100px;
+  padding: 0.2rem 0.4rem;
+  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  outline: none;
+}
+
+.label-edit-name:focus {
+  border-color: var(--color-accent);
+}
+
+.label-edit-save,
+.label-edit-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  transition: all 0.15s ease;
+}
+
+.label-edit-save {
+  color: var(--color-success, #10b981);
+}
+
+.label-edit-save:hover {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.label-edit-save:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.label-edit-cancel {
+  color: var(--color-text-secondary);
+}
+
+.label-edit-cancel:hover {
+  color: var(--color-danger, #ef4444);
+  background: rgba(239, 68, 68, 0.1);
+}
+
 .label-chip-delete {
   display: flex;
   align-items: center;

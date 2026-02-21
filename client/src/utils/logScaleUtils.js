@@ -228,7 +228,7 @@ export function dateToYearsAgo(date) {
   const now = new Date()
   const diffMs = now.getTime() - eventDate.getTime()
   const yearsAgo = diffMs / (365.25 * 24 * 60 * 60 * 1000)
-  return Math.max(1, Math.round(yearsAgo))
+  return Math.max(DEFAULT_MIN_YEARS, yearsAgo)
 }
 
 /**
