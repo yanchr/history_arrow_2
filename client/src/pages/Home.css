@@ -81,6 +81,38 @@
   margin-right: 0.25rem;
 }
 
+.filter-mode-toggle {
+  display: flex;
+  background: var(--color-bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 2px;
+  margin-right: 0.35rem;
+}
+
+.filter-mode-btn {
+  padding: 0.3rem 0.7rem;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.filter-mode-btn:hover {
+  color: var(--color-text);
+}
+
+.filter-mode-btn.active {
+  background: var(--color-accent);
+  color: white;
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.3);
+}
+
 .label-filter-chip {
   padding: 0.4rem 0.85rem;
   background: var(--color-bg-secondary);

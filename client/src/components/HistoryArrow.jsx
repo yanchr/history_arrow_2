@@ -41,7 +41,11 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
 
   useImperativeHandle(ref, () => ({
     centerOnEvent(event) {
-      const yearsAgo = eventToYearsAgo(event)
+      const startYearsAgo = eventToYearsAgo(event)
+      const endYearsAgo = eventEndToYearsAgo(event)
+      const yearsAgo = endYearsAgo != null
+        ? (startYearsAgo + endYearsAgo) / 2
+        : startYearsAgo
       const newEnd = Math.min(yearsAgo * 2, DEFAULT_MAX_YEARS)
       setViewStart(DEFAULT_MIN_YEARS)
       setViewEnd(newEnd)

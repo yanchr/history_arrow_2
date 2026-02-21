@@ -106,6 +106,7 @@ function Home() {
   const [visibleEvents, setVisibleEvents] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [activeLabels, setActiveLabels] = useState([])
+  const [filterMode, setFilterMode] = useState('include')
   const [editingEvent, setEditingEvent] = useState(null)
   const [editError, setEditError] = useState('')
   const timelineRef = useRef(null)
@@ -175,11 +176,18 @@ function Home() {
 
   const filteredEvents = useMemo(() => {
     if (activeLabels.length === 0) return displayEvents
+    if (filterMode === 'include') {
+      return displayEvents.filter(e => {
+        if (!e.label && activeLabels.includes('__none__')) return true
+        return e.label && activeLabels.includes(e.label)
+      })
+    }
     return displayEvents.filter(e => {
-      if (!e.label && activeLabels.includes('__none__')) return true
-      return e.label && activeLabels.includes(e.label)
+      if (!e.label && activeLabels.includes('__none__')) return false
+      if (e.label && activeLabels.includes(e.label)) return false
+      return true
     })
-  }, [displayEvents, activeLabels])
+  }, [displayEvents, activeLabels, filterMode])
 
   const searchFilteredEvents = useMemo(() => {
     const base = filteredEvents
@@ -207,7 +215,20 @@ function Home() {
       </motion.section>
 
       <div className="label-filter-bar">
-        <span className="filter-label-text">Filter:</span>
+        <div className="filter-mode-toggle">
+          <button
+            className={`filter-mode-btn ${filterMode === 'include' ? 'active' : ''}`}
+            onClick={() => setFilterMode('include')}
+          >
+            Include
+          </button>
+          <button
+            className={`filter-mode-btn ${filterMode === 'exclude' ? 'active' : ''}`}
+            onClick={() => setFilterMode('exclude')}
+          >
+            Exclude
+          </button>
+        </div>
         <button
           className={`label-filter-chip ${activeLabels.includes('__none__') ? 'active' : ''}`}
           style={activeLabels.includes('__none__') ? { borderColor: '#6b7280', background: 'rgba(107, 114, 128, 0.2)', color: '#6b7280' } : {}}

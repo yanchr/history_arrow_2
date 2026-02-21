@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { getAuthHeaders } from '../utils/supabase'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
 
@@ -29,10 +30,12 @@ export function useEvents() {
   }, [fetchEvents])
 
   const createEvent = async (eventData) => {
+    const auth = await getAuthHeaders()
     const response = await fetch(`${API_URL}/api/events`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...auth
       },
       body: JSON.stringify(eventData)
     })
@@ -46,10 +49,12 @@ export function useEvents() {
   }
 
   const updateEvent = async (id, eventData) => {
+    const auth = await getAuthHeaders()
     const response = await fetch(`${API_URL}/api/events/${id}`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...auth
       },
       body: JSON.stringify(eventData)
     })
@@ -63,8 +68,10 @@ export function useEvents() {
   }
 
   const deleteEvent = async (id) => {
+    const auth = await getAuthHeaders()
     const response = await fetch(`${API_URL}/api/events/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: auth
     })
     if (!response.ok) {
       const error = await response.json()

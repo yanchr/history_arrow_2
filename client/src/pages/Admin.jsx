@@ -42,7 +42,7 @@ const getEventSortValue = (event) => {
 
 function Admin() {
   const { events, loading, error, createEvent, updateEvent, deleteEvent, refetch } = useEvents()
-  const { labels, createLabel, deleteLabel, labelColorMap } = useLabels()
+  const { labels, createLabel, updateLabel, deleteLabel, labelColorMap } = useLabels()
   const [showForm, setShowForm] = useState(false)
   const [editingEvent, setEditingEvent] = useState(null)
   const [actionError, setActionError] = useState('')
@@ -53,6 +53,9 @@ function Admin() {
   const [newLabelName, setNewLabelName] = useState('')
   const [newLabelColor, setNewLabelColor] = useState('#6b7280')
   const [labelError, setLabelError] = useState('')
+  const [editingLabel, setEditingLabel] = useState(null)
+  const [editLabelName, setEditLabelName] = useState('')
+  const [editLabelColor, setEditLabelColor] = useState('')
 
   // Filter events based on search query
   const filteredEvents = events.filter(event => {
@@ -320,11 +323,75 @@ function Admin() {
         <div className="label-chips">
           {labels.map((label) => {
             const eventCount = events.filter(e => e.label === label.name).length
+            const isEditing = editingLabel === label.id
+
+            if (isEditing) {
+              return (
+                <div
+                  key={label.id}
+                  className="label-chip label-chip--editing"
+                  style={{ borderColor: editLabelColor, background: `${editLabelColor}15` }}
+                >
+                  <input
+                    type="color"
+                    className="label-edit-color"
+                    value={editLabelColor}
+                    onChange={(e) => setEditLabelColor(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="label-edit-name"
+                    value={editLabelName}
+                    onChange={(e) => setEditLabelName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') e.target.closest('.label-chip').querySelector('.label-edit-save').click()
+                      if (e.key === 'Escape') setEditingLabel(null)
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    className="label-edit-save"
+                    title="Save"
+                    onClick={async () => {
+                      try {
+                        setLabelError('')
+                        await updateLabel(label.id, { name: editLabelName, color: editLabelColor })
+                        await refetch()
+                        setEditingLabel(null)
+                      } catch (err) {
+                        setLabelError(err.message)
+                      }
+                    }}
+                    disabled={!editLabelName.trim()}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </button>
+                  <button
+                    className="label-edit-cancel"
+                    title="Cancel"
+                    onClick={() => setEditingLabel(null)}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )
+            }
+
             return (
               <div
                 key={label.id}
-                className="label-chip"
+                className="label-chip label-chip--clickable"
                 style={{ borderColor: label.color, background: `${label.color}15` }}
+                onClick={() => {
+                  setEditingLabel(label.id)
+                  setEditLabelName(label.name)
+                  setEditLabelColor(label.color)
+                  setLabelError('')
+                }}
               >
                 <span className="label-chip-dot" style={{ backgroundColor: label.color }} />
                 <span className="label-chip-name">{label.name}</span>
@@ -332,7 +399,8 @@ function Admin() {
                 <button
                   className="label-chip-delete"
                   title={`Delete "${label.name}" label`}
-                  onClick={async () => {
+                  onClick={async (e) => {
+                    e.stopPropagation()
                     const msg = eventCount > 0
                       ? `This will remove the label from ${eventCount} event(s). Continue?`
                       : `Delete the "${label.name}" label?`

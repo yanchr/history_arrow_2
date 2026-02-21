@@ -1,5 +1,6 @@
 import express from 'express'
 import { supabase, isSupabaseConfigured } from '../config/supabase.js'
+import { requireAuth } from '../middleware/requireAuth.js'
 
 const router = express.Router()
 
@@ -197,7 +198,7 @@ router.get('/:id', async (req, res, next) => {
 })
 
 // POST create new event
-router.post('/', async (req, res, next) => {
+router.post('/', requireAuth, async (req, res, next) => {
   try {
     const { 
       title, 
@@ -252,7 +253,7 @@ router.post('/', async (req, res, next) => {
 })
 
 // PUT update event
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
     const { 
@@ -313,7 +314,7 @@ router.put('/:id', async (req, res, next) => {
 })
 
 // DELETE event
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params
 
