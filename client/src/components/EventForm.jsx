@@ -19,6 +19,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
     title: '',
     description: '',
     image_url: '',
+    event_url: '',
     date_type: 'date',
     start_date: '',
     end_date: '',
@@ -50,6 +51,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
           title: event.title || '',
           description: event.description || '',
           image_url: event.image_url || '',
+          event_url: event.event_url || '',
           date_type: 'astronomical',
           start_date: '',
           end_date: '',
@@ -65,6 +67,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
           title: event.title || '',
           description: event.description || '',
           image_url: event.image_url || '',
+          event_url: event.event_url || '',
           date_type: 'date',
           start_date: event.start_date ? event.start_date.split('T')[0] : '',
           end_date: event.end_date ? event.end_date.split('T')[0] : '',
@@ -232,6 +235,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         title: formData.title,
         description: formData.description,
         image_url: formData.image_url?.trim() || null,
+        event_url: formData.event_url?.trim() || null,
         date_type: 'date',
         start_date: formData.start_date,
         end_date: isSpan ? formData.end_date : null,
@@ -249,6 +253,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         title: formData.title,
         description: formData.description,
         image_url: formData.image_url?.trim() || null,
+        event_url: formData.event_url?.trim() || null,
         date_type: 'astronomical',
         start_date: null,
         end_date: null,
@@ -312,6 +317,21 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
             rows={4}
             disabled={submitting}
           />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="event_url" className="form-label">External Link</label>
+          <input
+            id="event_url"
+            name="event_url"
+            type="url"
+            className="form-input"
+            value={formData.event_url}
+            onChange={handleChange}
+            placeholder="https://example.com"
+            disabled={submitting}
+          />
+          <p className="form-hint">Optional source or reference link for this event.</p>
         </div>
 
         {/* Picture */}

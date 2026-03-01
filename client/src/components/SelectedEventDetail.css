@@ -176,6 +176,20 @@
   margin: 0;
 }
 
+.selected-event-link {
+  display: inline-flex;
+  margin-top: 0.85rem;
+  color: #93c5fd;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.selected-event-link:hover {
+  color: #bfdbfe;
+}
+
 .selected-event-indicator {
   display: flex;
   align-items: center;

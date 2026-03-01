@@ -5,7 +5,7 @@ import './SelectedEventDetail.css'
 function SelectedEventDetail({ event, onClose, onEdit }) {
   if (!event) return null
 
-  const { title, description, image_url, date_type } = event
+  const { title, description, image_url, event_url, date_type } = event
 
   // Get formatted dates based on event type
   const startDateDisplay = formatEventDate(event, false)
@@ -18,6 +18,9 @@ function SelectedEventDetail({ event, onClose, onEdit }) {
 
   // Get event type label
   const eventTypeLabel = date_type === 'astronomical' ? 'Astronomical' : 'Historical'
+  const eventUrlHref = event_url
+    ? (/^https?:\/\//i.test(event_url) ? event_url : `https://${event_url}`)
+    : null
 
   return (
     <motion.div
@@ -80,6 +83,17 @@ function SelectedEventDetail({ event, onClose, onEdit }) {
 
         {description && (
           <p className="selected-event-description">{description}</p>
+        )}
+
+        {eventUrlHref && (
+          <a
+            className="selected-event-link"
+            href={eventUrlHref}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open source link
+          </a>
         )}
       </div>
 
