@@ -7,6 +7,7 @@ import {
   linearPositionToYear,
   getLinearTicks,
   formatYearsAgoShort,
+  dateToYearsAgo,
   eventToYearsAgo,
   eventEndToYearsAgo,
   DEFAULT_MIN_YEARS,
@@ -110,6 +111,10 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
   const [timelineHover, setTimelineHover] = useState({ active: false, x: 0, yearsAgo: 0 })
   const [isIphoneViewport, setIsIphoneViewport] = useState(false)
   const [eventsLayerWidth, setEventsLayerWidth] = useState(1000)
+  const [centerInputType, setCenterInputType] = useState('date')
+  const [centerInputValue, setCenterInputValue] = useState('')
+  const [centerInputError, setCenterInputError] = useState('')
+  const [manualCenterLabel, setManualCenterLabel] = useState('')
   // View state: years ago for the visible range
   // viewStart = closer to present (smaller years ago)
   // viewEnd = further in past (larger years ago)
@@ -127,6 +132,15 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
     const newEnd = Math.min(yearsAgo * 2, DEFAULT_MAX_YEARS)
     setViewStart(DEFAULT_MIN_YEARS)
     setViewEnd(newEnd)
+    setManualCenterLabel('')
+    setCenterInputError('')
+  }, [])
+
+  const centerViewOnYearsAgo = useCallback((yearsAgo) => {
+    const safeYearsAgo = Math.max(DEFAULT_MIN_YEARS, Math.min(DEFAULT_MAX_YEARS, yearsAgo))
+    // Keep "years ago" value in the middle by anchoring to present (0) and using 2x span.
+    setViewStart(DEFAULT_MIN_YEARS)
+    setViewEnd(Math.min(DEFAULT_MAX_YEARS, safeYearsAgo * 2))
   }, [])
 
   useEffect(() => {
@@ -400,13 +414,17 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
   const handleViewChange = useCallback((newStart, newEnd) => {
     setViewStart(Math.max(DEFAULT_MIN_YEARS, newStart))
     setViewEnd(Math.min(DEFAULT_MAX_YEARS, newEnd))
+    setManualCenterLabel('')
+    setCenterInputError('')
   }, [])
 
   // Reset view to show all events
   const handleReset = useCallback(() => {
     setViewStart(DEFAULT_MIN_YEARS)
     setViewEnd(CURRENT_YEAR)
-  }, [eventBounds])
+    setManualCenterLabel('')
+    setCenterInputError('')
+  }, [])
 
   const handleRandomEventSelect = useCallback(() => {
     if (!events || events.length === 0) return
@@ -421,6 +439,38 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
     onEventClick?.(randomEvent)
     centerViewOnEvent(randomEvent)
   }, [events, selectedEvent, onEventClick, centerViewOnEvent])
+
+  const handleCenterInputSubmit = useCallback((e) => {
+    e.preventDefault()
+    setCenterInputError('')
+
+    if (!centerInputValue.trim()) {
+      setCenterInputError('Enter a value first.')
+      return
+    }
+
+    if (centerInputType === 'date') {
+      const parsedDate = new Date(centerInputValue)
+      if (Number.isNaN(parsedDate.getTime())) {
+        setCenterInputError('Please enter a valid date.')
+        return
+      }
+
+      const yearsAgo = dateToYearsAgo(parsedDate)
+      centerViewOnYearsAgo(yearsAgo)
+      setManualCenterLabel(parsedDate.toLocaleDateString())
+      return
+    }
+
+    const numericValue = Number(centerInputValue.replace(/,/g, '').trim())
+    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+      setCenterInputError('Astronomical year must be a positive number.')
+      return
+    }
+
+    centerViewOnYearsAgo(numericValue)
+    setManualCenterLabel(`${formatYearsAgoShort(numericValue)} ago`)
+  }, [centerInputType, centerInputValue, centerViewOnYearsAgo])
 
   // Handle mouse move over timeline to show current position
   const handleTimelineMouseMove = useCallback((e) => {
@@ -516,6 +566,35 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
       <div className="timeline-header">
         <h3 className="timeline-title">Timeline of History</h3>
         <div className="timeline-actions">
+          <form className="center-input-form" onSubmit={handleCenterInputSubmit}>
+            <div className="center-input-row">
+              <select
+                className="center-input-type"
+                value={centerInputType}
+                onChange={(e) => {
+                  setCenterInputType(e.target.value)
+                  setCenterInputError('')
+                }}
+              >
+                <option value="date">Date</option>
+                <option value="astronomical">Astronomical year</option>
+              </select>
+              <input
+                className="center-input-field"
+                type={centerInputType === 'date' ? 'date' : 'text'}
+                value={centerInputValue}
+                onChange={(e) => {
+                  setCenterInputValue(e.target.value)
+                  setCenterInputError('')
+                }}
+                placeholder={centerInputType === 'date' ? '' : 'e.g. 66000000'}
+              />
+              <button type="submit" className="center-input-btn">
+                Center
+              </button>
+            </div>
+            {centerInputError && <span className="center-input-error">{centerInputError}</span>}
+          </form>
           <button className="random-event-btn" onClick={handleRandomEventSelect}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 8l4-4 4 4-4 4-4-4z" />
@@ -553,6 +632,12 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
                 <path d="M12 4l8 8-8 8V4z" />
               </svg>
             </div>
+            {manualCenterLabel && (
+              <div className="arrow-center-indicator">
+                <div className="arrow-center-dot" />
+                <span className="arrow-center-label">{manualCenterLabel}</span>
+              </div>
+            )}
           </div>
 
           {/* Timeline Ticks */}

@@ -25,6 +25,63 @@
   gap: 0.5rem;
 }
 
+.center-input-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.center-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.center-input-type,
+.center-input-field {
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  padding: 0 0.6rem;
+}
+
+.center-input-type {
+  min-width: 128px;
+}
+
+.center-input-field {
+  min-width: 152px;
+}
+
+.center-input-btn {
+  height: 34px;
+  padding: 0 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.18);
+  color: #a7f3d0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.center-input-btn:hover {
+  background: rgba(16, 185, 129, 0.28);
+  color: #d1fae5;
+}
+
+.center-input-error {
+  color: #fca5a5;
+  font-size: 0.72rem;
+  max-width: 280px;
+  text-align: right;
+}
+
 .random-event-btn {
   display: flex;
   align-items: center;
@@ -108,6 +165,37 @@
   transform: translateY(-50%);
   display: flex;
   align-items: center;
+}
+
+.arrow-center-indicator {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+.arrow-center-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: #34d399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2);
+}
+
+.arrow-center-label {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  color: #d1fae5;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  white-space: nowrap;
 }
 
 .arrow-body {
@@ -322,6 +410,26 @@
   .timeline-actions {
     width: 100%;
     align-items: flex-start;
+  }
+
+  .center-input-form {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .center-input-row {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .center-input-type,
+  .center-input-field {
+    flex: 1;
+    min-width: 130px;
+  }
+
+  .center-input-error {
+    text-align: left;
   }
 
   .timeline-content {
