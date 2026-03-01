@@ -8,13 +8,18 @@ function EventMarker({
   isHovered, 
   isSelected,
   showLabel = true,
-  isInCluster = false,
-  isInHoveredCluster = false,
-  fisheyeOffset = 0,
-  isDimmed = false,
   labelColor = null
 }) {
-  const { startPos, endPos, isSpan, title } = event
+  const {
+    startPos,
+    endPos,
+    isSpan,
+    title,
+    spanLaneRing = 1,
+    spanLaneDirection = -1,
+    pointLaneRing = 1,
+    pointLaneDirection = -1
+  } = event
 
   const handleMouseEnter = () => {
     onHover(event)
@@ -34,20 +39,23 @@ function EventMarker({
   // For spans, always show labels (they're usually important periods)
   if (isSpan) {
     const width = Math.max(endPos - startPos, 2)
+    const laneOffset = spanLaneDirection * spanLaneRing
+    const isBelowBaseline = spanLaneDirection > 0
 
     return (
       <motion.div
-        className={`event-span ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''} ${isDimmed ? 'dimmed' : ''}`}
+        className={`event-span ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''}`}
         style={{
           left: `${startPos}%`,
           width: `${width}%`,
+          top: `calc(50% + (${laneOffset} * var(--span-lane-gap, 22px)))`,
           '--label-color': labelColor || '#00d4ff'
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
         initial={{ opacity: 0, scaleX: 0 }}
-        animate={{ opacity: isDimmed ? 0.3 : 1, scaleX: 1 }}
+        animate={{ opacity: 1, scaleX: 1 }}
         whileHover={{ y: -2 }}
         whileTap={{ scale: 0.98 }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
@@ -58,9 +66,9 @@ function EventMarker({
           <div className="span-cap span-cap-end" />
         </div>
         <AnimatePresence>
-          {(showLabel || isHovered || isSelected) && !isDimmed && (
+          {(showLabel || isHovered || isSelected) && (
             <motion.span 
-              className="span-label"
+              className={`span-label ${isBelowBaseline ? 'span-label-below' : ''}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -74,29 +82,28 @@ function EventMarker({
     )
   }
 
-  // For point markers in a cluster - show them if cluster is hovered (fisheye effect)
-  if (isInCluster && !isInHoveredCluster) {
-    return null
-  }
-
-  // Calculate the actual position with fisheye offset
-  const actualPosition = startPos + fisheyeOffset
+  const pointLaneOffset = pointLaneDirection * pointLaneRing
+  const isPointBelowBaseline = pointLaneDirection > 0
 
   // Render as a point marker
   return (
     <motion.div
-      className={`event-point ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''} ${isInHoveredCluster ? 'fisheye-active' : ''} ${isDimmed ? 'dimmed' : ''}`}
-      style={{ left: `${actualPosition}%`, '--label-color': labelColor || '#00d4ff' }}
+      className={`event-point ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''}`}
+      style={{
+        left: `${startPos}%`,
+        top: `calc(50% + (${pointLaneOffset} * var(--point-lane-gap, 28px)))`,
+        '--label-color': labelColor || '#00d4ff'
+      }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
       initial={{ opacity: 0, scale: 0 }}
       animate={{ 
-        opacity: isDimmed ? 0.3 : 1, 
-        scale: isInHoveredCluster ? 1.2 : 1,
-        left: `${actualPosition}%`
+        opacity: 1,
+        scale: 1,
+        left: `${startPos}%`
       }}
-      whileHover={{ scale: isInHoveredCluster ? 1.4 : 1.2 }}
+      whileHover={{ scale: 1.2 }}
       whileTap={{ scale: 0.9 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
     >
@@ -105,9 +112,9 @@ function EventMarker({
         <div className="point-pulse" />
       </div>
       <AnimatePresence>
-        {(showLabel || isHovered || isSelected || isInHoveredCluster) && !isDimmed && (
+        {(showLabel || isHovered || isSelected) && (
           <motion.span 
-            className="point-label"
+            className={`point-label ${isPointBelowBaseline ? 'point-label-below' : ''}`}
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 5 }}
