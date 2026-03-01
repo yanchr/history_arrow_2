@@ -118,6 +118,17 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
   const timelineRef = useRef(null)
   const eventsLayerRef = useRef(null)
 
+  const centerViewOnEvent = useCallback((event) => {
+    const startYearsAgo = eventToYearsAgo(event)
+    const endYearsAgo = eventEndToYearsAgo(event)
+    const yearsAgo = endYearsAgo != null
+      ? (startYearsAgo + endYearsAgo) / 2
+      : startYearsAgo
+    const newEnd = Math.min(yearsAgo * 2, DEFAULT_MAX_YEARS)
+    setViewStart(DEFAULT_MIN_YEARS)
+    setViewEnd(newEnd)
+  }, [])
+
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
 
@@ -161,17 +172,8 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
   }, [])
 
   useImperativeHandle(ref, () => ({
-    centerOnEvent(event) {
-      const startYearsAgo = eventToYearsAgo(event)
-      const endYearsAgo = eventEndToYearsAgo(event)
-      const yearsAgo = endYearsAgo != null
-        ? (startYearsAgo + endYearsAgo) / 2
-        : startYearsAgo
-      const newEnd = Math.min(yearsAgo * 2, DEFAULT_MAX_YEARS)
-      setViewStart(DEFAULT_MIN_YEARS)
-      setViewEnd(newEnd)
-    }
-  }))
+    centerOnEvent: centerViewOnEvent
+  }), [centerViewOnEvent])
 
   // Calculate the overall bounds from events
   const eventBounds = useMemo(() => {
@@ -406,6 +408,20 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
     setViewEnd(CURRENT_YEAR)
   }, [eventBounds])
 
+  const handleRandomEventSelect = useCallback(() => {
+    if (!events || events.length === 0) return
+
+    const candidates = events.length > 1 && selectedEvent
+      ? events.filter(event => event.id !== selectedEvent.id)
+      : events
+
+    const randomEvent = candidates[Math.floor(Math.random() * candidates.length)]
+    if (!randomEvent) return
+
+    onEventClick?.(randomEvent)
+    centerViewOnEvent(randomEvent)
+  }, [events, selectedEvent, onEventClick, centerViewOnEvent])
+
   // Handle mouse move over timeline to show current position
   const handleTimelineMouseMove = useCallback((e) => {
     if (!eventsLayerRef.current) return
@@ -461,17 +477,61 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
     }
   }
 
+  const formatElapsedYears = (value) => {
+    if (value >= 1e9) return `${(value / 1e9).toFixed(2)} billion years`
+    if (value >= 1e6) return `${(value / 1e6).toFixed(2)} million years`
+    if (value >= 1e3) return `${(value / 1e3).toFixed(1)}k years`
+
+    const rounded = value >= 10 ? Math.round(value) : Math.round(value * 10) / 10
+    const unit = rounded === 1 ? 'year' : 'years'
+    return `${rounded} ${unit}`
+  }
+
+  const getHoveredEventElapsedLines = (event, hoverYearsAgo) => {
+    if (!event || hoverYearsAgo === null || hoverYearsAgo === undefined) return []
+
+    const hasEnd = event.endYearsAgo !== null && event.endYearsAgo !== undefined
+    const totalDuration = hasEnd
+      ? Math.max(0, event.yearsAgo - event.endYearsAgo)
+      : null
+
+    if (!hasEnd) {
+      return [`${formatElapsedYears(Math.max(0, event.yearsAgo))} old`]
+    }
+
+    let fromStartToHover = Math.max(0, event.yearsAgo - hoverYearsAgo)
+    if (totalDuration !== null) {
+      fromStartToHover = Math.min(fromStartToHover, totalDuration)
+    }
+
+    const lines = [`${formatElapsedYears(fromStartToHover)} old`]
+    if (totalDuration !== null) {
+      lines.push(`${formatElapsedYears(totalDuration)} total`)
+    }
+    return lines
+  }
+
   return (
     <div className="history-arrow-container">
       <div className="timeline-header">
         <h3 className="timeline-title">Timeline of History</h3>
-        <button className="reset-view-btn" onClick={handleReset}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-            <path d="M3 3v5h5" />
-          </svg>
-          Reset View
-        </button>
+        <div className="timeline-actions">
+          <button className="random-event-btn" onClick={handleRandomEventSelect}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 8l4-4 4 4-4 4-4-4z" />
+              <path d="M12 16l4-4 4 4-4 4-4-4z" />
+              <path d="M9 15l6-6" />
+            </svg>
+            Random Event
+          </button>
+          <button className="reset-view-btn" onClick={handleReset}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+            Reset View
+          </button>
+        </div>
       </div>
 
       <div 
@@ -558,6 +618,15 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
             >
               <div className="hover-line" />
               <span className="hover-time">{formatHoverTime(timelineHover.yearsAgo)}</span>
+              {hoveredEvent && (
+                <span className="hover-time-secondary">
+                  {getHoveredEventElapsedLines(hoveredEvent, timelineHover.yearsAgo).map((line, index) => (
+                    <span key={`${index}-${line}`} className="hover-time-secondary-line">
+                      {line}
+                    </span>
+                  ))}
+                </span>
+              )}
             </motion.div>
           )}
         </motion.div>

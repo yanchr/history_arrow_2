@@ -5,6 +5,8 @@
 -- MIGRATIONS: If you have an existing database, run these as needed:
 -- Add image_url:
 --   ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url TEXT;
+-- Add event_url:
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS event_url TEXT;
 -- Add label:
 --   ALTER TABLE events ADD COLUMN IF NOT EXISTS label VARCHAR(50) DEFAULT NULL;
 --   CREATE INDEX IF NOT EXISTS idx_events_label ON events(label);
@@ -41,6 +43,7 @@ CREATE TABLE IF NOT EXISTS events (
   title VARCHAR(255) NOT NULL,
   description TEXT,
   image_url TEXT,
+  event_url TEXT,
   
   -- Date type: 'date' for precise calendar dates, 'astronomical' for years ago
   date_type VARCHAR(20) DEFAULT 'date' CHECK (date_type IN ('date', 'astronomical')),
