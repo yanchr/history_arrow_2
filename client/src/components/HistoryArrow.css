@@ -45,7 +45,10 @@
 
 .timeline-wrapper {
   position: relative;
-  height: 200px;
+  height: calc(
+    var(--timeline-base-height, 200px) +
+    (var(--timeline-lane-depth-px, 0px) * 2)
+  );
   margin: 1rem 0;
   overflow: hidden;
   background: linear-gradient(
@@ -143,14 +146,6 @@
   left: 60px;
   right: 60px;
   bottom: 0;
-}
-
-/* When a cluster is being hovered, dim the rest of the timeline */
-.events-layer.has-hovered-cluster ~ .view-range-labels,
-.timeline-content:has(.events-layer.has-hovered-cluster) .arrow-line,
-.timeline-content:has(.events-layer.has-hovered-cluster) .timeline-ticks {
-  opacity: 0.3;
-  transition: opacity 0.2s ease;
 }
 
 /* View Range Labels */
@@ -267,10 +262,6 @@
     flex-direction: column;
     gap: 0.75rem;
     align-items: flex-start;
-  }
-
-  .timeline-wrapper {
-    height: 160px;
   }
 
   .timeline-content {

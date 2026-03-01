@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { motion } from 'framer-motion'
 import EventMarker from './EventMarker'
-import ClusterIndicator from './ClusterIndicator'
 import LogarithmicMinimap from './LogarithmicMinimap'
 import {
   yearToLinearPosition,
@@ -13,12 +12,6 @@ import {
   DEFAULT_MIN_YEARS,
   DEFAULT_MAX_YEARS
 } from '../utils/logScaleUtils'
-import {
-  detectClusters,
-  getClusteredEventIds,
-  shouldShowLabel,
-  getClusterZoomBounds
-} from '../utils/clusterUtils'
 import './HistoryArrow.css'
 
 // Current date as a fractional year (e.g. 2026.14 for mid-February 2026)
@@ -26,11 +19,97 @@ const NOW = new Date()
 const YEAR_START = new Date(NOW.getFullYear(), 0, 1)
 const YEAR_END = new Date(NOW.getFullYear() + 1, 0, 1)
 const CURRENT_YEAR = NOW.getFullYear() + (NOW - YEAR_START) / (YEAR_END - YEAR_START)
+const IPHONE_MAX_WIDTH = 430
+const IPHONE_MAX_SPAN_LANES = 4
+const IPHONE_MAX_POINT_LANES = 5
+const DESKTOP_MAX_SPAN_LANES = 10
+const DESKTOP_MAX_POINT_LANES = 10
+const SPAN_OVERLAP_PADDING_PERCENT = 0.35
+const POINT_OVERLAP_PADDING_PERCENT = 0.25
+const POINT_COLLISION_WIDTH_PERCENT = 1.6
+const POINT_MARKER_WIDTH_PX = 16
+const POINT_LABEL_MAX_WIDTH_PX = 120
+const SPAN_LABEL_MAX_WIDTH_PX = 150
+const LABEL_CHAR_WIDTH_PX = 6.4
+const LABEL_PADDING_PX = 20
+const DESKTOP_TIMELINE_BASE_HEIGHT = 200
+const MOBILE_TIMELINE_BASE_HEIGHT = 160
+const DESKTOP_SPAN_LANE_GAP = 22
+const MOBILE_SPAN_LANE_GAP = 16
+const DESKTOP_POINT_LANE_GAP = 28
+const MOBILE_POINT_LANE_GAP = 22
+
+const estimateLabelWidthPx = (title, maxWidthPx) => {
+  const safeTitle = typeof title === 'string' ? title : ''
+  const estimated = safeTitle.length * LABEL_CHAR_WIDTH_PX + LABEL_PADDING_PX
+  return Math.min(maxWidthPx, Math.max(40, estimated))
+}
+
+const buildLaneLayout = (
+  items,
+  overlapPadding,
+  isIphoneViewport,
+  iphoneLaneCap,
+  desktopLaneCap
+) => {
+  const sortedItems = [...items].sort((a, b) => {
+    if (a.left !== b.left) return a.left - b.left
+    if (a.width !== b.width) return b.width - a.width
+    return String(a.id).localeCompare(String(b.id))
+  })
+
+  const laneRightEdges = []
+  const assignments = []
+
+  sortedItems.forEach(item => {
+    let laneIndex = laneRightEdges.findIndex(
+      rightEdge => item.left >= rightEdge + overlapPadding
+    )
+
+    if (laneIndex === -1) {
+      laneIndex = laneRightEdges.length
+      laneRightEdges.push(item.right)
+    } else {
+      laneRightEdges[laneIndex] = item.right
+    }
+
+    assignments.push({ id: item.id, laneIndex })
+  })
+
+  const rawLaneCount = laneRightEdges.length
+  const effectiveLaneCount = rawLaneCount === 0
+    ? 0
+    : Math.min(rawLaneCount, isIphoneViewport ? iphoneLaneCap : desktopLaneCap)
+
+  const laneMetadata = new Map()
+  assignments.forEach(({ id, laneIndex }) => {
+    const visualLane = effectiveLaneCount > 0 ? laneIndex % effectiveLaneCount : 0
+    const laneRing = Math.floor(visualLane / 2) + 1
+    const laneDirection = visualLane % 2 === 0 ? -1 : 1
+
+    laneMetadata.set(id, {
+      laneIndex,
+      visualLane,
+      laneRing,
+      laneDirection,
+      laneCount: rawLaneCount,
+      effectiveLaneCount
+    })
+  })
+
+  return {
+    laneMetadata,
+    rawLaneCount,
+    effectiveLaneCount,
+    lanesPerSide: effectiveLaneCount > 0 ? Math.ceil(effectiveLaneCount / 2) : 0
+  }
+}
 
 const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChange, labelColorMap = new Map() }, ref) {
   const [hoveredEvent, setHoveredEvent] = useState(null)
-  const [hoveredCluster, setHoveredCluster] = useState(null)
   const [timelineHover, setTimelineHover] = useState({ active: false, x: 0, yearsAgo: 0 })
+  const [isIphoneViewport, setIsIphoneViewport] = useState(false)
+  const [eventsLayerWidth, setEventsLayerWidth] = useState(1000)
   // View state: years ago for the visible range
   // viewStart = closer to present (smaller years ago)
   // viewEnd = further in past (larger years ago)
@@ -38,6 +117,48 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
   const [viewEnd, setViewEnd] = useState(CURRENT_YEAR) // Default to year 0 (2026 years ago)
   const timelineRef = useRef(null)
   const eventsLayerRef = useRef(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined
+
+    const mediaQuery = window.matchMedia(`(max-width: ${IPHONE_MAX_WIDTH}px)`)
+    const syncViewport = (eventOrQuery) => {
+      setIsIphoneViewport(eventOrQuery.matches)
+    }
+
+    syncViewport(mediaQuery)
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncViewport)
+      return () => mediaQuery.removeEventListener('change', syncViewport)
+    }
+
+    mediaQuery.addListener(syncViewport)
+    return () => mediaQuery.removeListener(syncViewport)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    if (!eventsLayerRef.current || typeof ResizeObserver === 'undefined') return undefined
+
+    const updateWidth = (width) => {
+      if (width > 0) {
+        setEventsLayerWidth(width)
+      }
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry?.contentRect?.width) {
+        updateWidth(entry.contentRect.width)
+      }
+    })
+
+    observer.observe(eventsLayerRef.current)
+    updateWidth(eventsLayerRef.current.getBoundingClientRect().width)
+
+    return () => observer.disconnect()
+  }, [])
 
   useImperativeHandle(ref, () => ({
     centerOnEvent(event) {
@@ -143,6 +264,125 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
       })
   }, [events, viewStart, viewEnd])
 
+  const spanLaneLayout = useMemo(() => {
+    const laneItems = positionedEvents
+      .filter(event => event.isSpan && event.endPos !== null)
+      .map(event => {
+        const spanLeft = Math.min(event.startPos, event.endPos)
+        const spanRight = Math.max(event.startPos, event.endPos)
+        const spanCenter = (spanLeft + spanRight) / 2
+        const labelWidthPx = estimateLabelWidthPx(event.title, SPAN_LABEL_MAX_WIDTH_PX)
+        const labelWidthPercent = (labelWidthPx / eventsLayerWidth) * 100
+        const labelLeft = spanCenter - labelWidthPercent / 2
+        const labelRight = spanCenter + labelWidthPercent / 2
+        const left = Math.min(spanLeft, labelLeft)
+        const right = Math.max(spanRight, labelRight)
+
+        return {
+          id: event.id,
+          left,
+          right,
+          width: right - left
+        }
+      })
+    return buildLaneLayout(
+      laneItems,
+      SPAN_OVERLAP_PADDING_PERCENT,
+      isIphoneViewport,
+      IPHONE_MAX_SPAN_LANES,
+      DESKTOP_MAX_SPAN_LANES
+    )
+  }, [positionedEvents, isIphoneViewport, eventsLayerWidth])
+
+  const pointLaneLayout = useMemo(() => {
+    const laneItems = positionedEvents
+      .filter(event => !event.isSpan)
+      .map(event => {
+        const markerWidthPercent = Math.max(
+          POINT_COLLISION_WIDTH_PERCENT,
+          (POINT_MARKER_WIDTH_PX / eventsLayerWidth) * 100
+        )
+        const markerLeft = event.startPos - markerWidthPercent / 2
+        const markerRight = event.startPos + markerWidthPercent / 2
+        const labelWidthPx = estimateLabelWidthPx(event.title, POINT_LABEL_MAX_WIDTH_PX)
+        const labelWidthPercent = (labelWidthPx / eventsLayerWidth) * 100
+        const labelLeft = event.startPos - labelWidthPercent / 2
+        const labelRight = event.startPos + labelWidthPercent / 2
+        const left = Math.min(markerLeft, labelLeft)
+        const right = Math.max(markerRight, labelRight)
+
+        return {
+          id: event.id,
+          left,
+          right,
+          width: right - left
+        }
+      })
+
+    return buildLaneLayout(
+      laneItems,
+      POINT_OVERLAP_PADDING_PERCENT,
+      isIphoneViewport,
+      IPHONE_MAX_POINT_LANES,
+      DESKTOP_MAX_POINT_LANES
+    )
+  }, [positionedEvents, isIphoneViewport, eventsLayerWidth])
+
+  const timelineLayoutStyle = useMemo(() => {
+    const baseHeight = isIphoneViewport ? MOBILE_TIMELINE_BASE_HEIGHT : DESKTOP_TIMELINE_BASE_HEIGHT
+    const spanLaneGap = isIphoneViewport ? MOBILE_SPAN_LANE_GAP : DESKTOP_SPAN_LANE_GAP
+    const pointLaneGap = isIphoneViewport ? MOBILE_POINT_LANE_GAP : DESKTOP_POINT_LANE_GAP
+    const laneDepthPx = Math.max(
+      spanLaneLayout.lanesPerSide * spanLaneGap,
+      pointLaneLayout.lanesPerSide * pointLaneGap
+    )
+
+    return {
+      '--timeline-base-height': `${baseHeight}px`,
+      '--span-lane-gap': `${spanLaneGap}px`,
+      '--point-lane-gap': `${pointLaneGap}px`,
+      '--span-lane-depth': spanLaneLayout.lanesPerSide,
+      '--point-lane-depth': pointLaneLayout.lanesPerSide,
+      '--span-lane-count': spanLaneLayout.effectiveLaneCount,
+      '--point-lane-count': pointLaneLayout.effectiveLaneCount,
+      '--timeline-lane-depth-px': `${laneDepthPx}px`
+    }
+  }, [
+    isIphoneViewport,
+    spanLaneLayout.lanesPerSide,
+    spanLaneLayout.effectiveLaneCount,
+    pointLaneLayout.lanesPerSide,
+    pointLaneLayout.effectiveLaneCount
+  ])
+
+  const laneAwareEvents = useMemo(() => {
+    return positionedEvents.map(event => {
+      if (event.isSpan) {
+        const spanLaneMeta = spanLaneLayout.laneMetadata.get(event.id)
+        return {
+          ...event,
+          spanLaneIndex: spanLaneMeta?.laneIndex ?? 0,
+          spanVisualLane: spanLaneMeta?.visualLane ?? 0,
+          spanLaneRing: spanLaneMeta?.laneRing ?? 1,
+          spanLaneDirection: spanLaneMeta?.laneDirection ?? -1,
+          spanLaneCount: spanLaneMeta?.laneCount ?? 1,
+          spanEffectiveLaneCount: spanLaneMeta?.effectiveLaneCount ?? 1
+        }
+      }
+
+      const pointLaneMeta = pointLaneLayout.laneMetadata.get(event.id)
+      return {
+        ...event,
+        pointLaneIndex: pointLaneMeta?.laneIndex ?? 0,
+        pointVisualLane: pointLaneMeta?.visualLane ?? 0,
+        pointLaneRing: pointLaneMeta?.laneRing ?? 1,
+        pointLaneDirection: pointLaneMeta?.laneDirection ?? -1,
+        pointLaneCount: pointLaneMeta?.laneCount ?? 1,
+        pointEffectiveLaneCount: pointLaneMeta?.effectiveLaneCount ?? 1
+      }
+    })
+  }, [positionedEvents, spanLaneLayout.laneMetadata, pointLaneLayout.laneMetadata])
+
   // Notify parent of visible events changes
   useEffect(() => {
     if (onVisibleEventsChange) {
@@ -150,35 +390,12 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
     }
   }, [positionedEvents, onVisibleEventsChange])
 
-  // Detect clusters of overlapping events
-  const clusters = useMemo(() => {
-    // Only cluster point events, not spans
-    const pointEvents = positionedEvents.filter(e => !e.isSpan)
-    return detectClusters(pointEvents, 1.5) // 1.5% threshold - only cluster when really close
-  }, [positionedEvents])
-
-  // Get IDs of events that are part of clusters
-  const clusteredEventIds = useMemo(() => {
-    return getClusteredEventIds(clusters)
-  }, [clusters])
-
   const handleEventHover = (event) => {
     setHoveredEvent(event)
   }
 
-  const handleClusterHover = (cluster) => {
-    setHoveredCluster(cluster)
-  }
-
   // Handle view changes from the minimap
   const handleViewChange = useCallback((newStart, newEnd) => {
-    setViewStart(Math.max(DEFAULT_MIN_YEARS, newStart))
-    setViewEnd(Math.min(DEFAULT_MAX_YEARS, newEnd))
-  }, [])
-
-  const handleClusterClick = useCallback((cluster) => {
-    setHoveredCluster(null)
-    const { viewStart: newStart, viewEnd: newEnd } = getClusterZoomBounds(cluster)
     setViewStart(Math.max(DEFAULT_MIN_YEARS, newStart))
     setViewEnd(Math.min(DEFAULT_MAX_YEARS, newEnd))
   }, [])
@@ -260,6 +477,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
       <div 
         className="timeline-wrapper" 
         ref={timelineRef}
+        style={timelineLayoutStyle}
       >
         <motion.div
           className="timeline-content"
@@ -296,31 +514,13 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
           {/* Event Markers */}
           <div 
             ref={eventsLayerRef}
-            className={`events-layer ${hoveredCluster ? 'has-hovered-cluster' : ''}`}
+            className="events-layer"
             onMouseMove={handleTimelineMouseMove}
             onMouseLeave={handleTimelineMouseLeave}
           >
-            {positionedEvents.map(event => {
-              const isInCluster = clusteredEventIds.has(event.id)
-              const showLabel = shouldShowLabel(event, clusteredEventIds)
+            {laneAwareEvents.map(event => {
               const eventLabelColor = labelColorMap.get(event.label) || null
-              
-              const activeCluster = hoveredCluster
-              
-              // Check if this event is in the currently active (hovered or locked) cluster
-              const isInHoveredCluster = activeCluster?.events?.some(e => e.id === event.id)
-              
-              // Calculate fisheye offset for events in active cluster
-              let fisheyeOffset = 0
-              if (isInHoveredCluster && activeCluster) {
-                const clusterEvents = activeCluster.events
-                const eventIndex = clusterEvents.findIndex(e => e.id === event.id)
-                const totalEvents = clusterEvents.length
-                // Spread events evenly around the cluster center
-                const spreadWidth = Math.min(15, totalEvents * 4) // Max 15% spread
-                fisheyeOffset = ((eventIndex - (totalEvents - 1) / 2) / Math.max(1, totalEvents - 1)) * spreadWidth
-              }
-              
+
               return (
                 <EventMarker
                   key={event.id}
@@ -329,26 +529,11 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
                   onClick={onEventClick}
                   isHovered={hoveredEvent?.id === event.id}
                   isSelected={selectedEvent?.id === event.id}
-                  showLabel={showLabel || isInHoveredCluster}
-                  isInCluster={isInCluster}
-                  isInHoveredCluster={isInHoveredCluster}
-                  fisheyeOffset={fisheyeOffset}
-                  isDimmed={activeCluster && !isInHoveredCluster}
+                  showLabel
                   labelColor={eventLabelColor}
                 />
               )
             })}
-            
-            {/* Cluster Indicators */}
-            {clusters.map(cluster => (
-              <ClusterIndicator
-                key={cluster.id}
-                cluster={cluster}
-                onClick={handleClusterClick}
-                onHover={handleClusterHover}
-                isHovered={hoveredCluster?.id === cluster.id}
-              />
-            ))}
           </div>
 
           {/* View range labels */}

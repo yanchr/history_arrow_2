@@ -66,6 +66,11 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
+.point-label-below {
+  top: auto;
+  bottom: -28px;
+}
+
 .event-point.hovered .point-label,
 .event-point:hover .point-label {
   opacity: 1;
@@ -148,6 +153,11 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
+.span-label-below {
+  top: auto;
+  bottom: -20px;
+}
+
 .event-span.hovered .span-label,
 .event-span:hover .span-label {
   opacity: 1;
@@ -165,29 +175,6 @@
 .event-span.hovered .span-body .span-line::before {
   height: 10px;
   opacity: 0.7;
-}
-
-/* Stagger events vertically to avoid overlap */
-.event-point:nth-child(even) {
-  top: calc(50% - 30px);
-}
-
-.event-point:nth-child(even) .point-label {
-  top: auto;
-  bottom: -28px;
-}
-
-.event-span:nth-child(3n) {
-  top: calc(50% - 20px);
-}
-
-.event-span:nth-child(3n+1) {
-  top: calc(50% + 20px);
-}
-
-.event-span:nth-child(3n+1) .span-label {
-  top: auto;
-  bottom: -20px;
 }
 
 /* Selected State - Point Events */
@@ -220,41 +207,6 @@
   opacity: 1;
   color: #4ade80;
   font-weight: 600;
-}
-
-/* Fisheye Active State - for events in a hovered cluster */
-.event-point.fisheye-active {
-  z-index: 20;
-}
-
-.event-point.fisheye-active .point-inner {
-  transform: scale(1.1);
-  box-shadow: 
-    0 0 0 3px currentColor,
-    0 0 25px rgba(255, 255, 255, 0.4);
-}
-
-.event-point.fisheye-active .point-label {
-  opacity: 1 !important;
-  font-weight: 600;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-}
-
-/* Stagger fisheye labels to avoid overlap */
-.event-point.fisheye-active:nth-child(odd) .point-label {
-  top: auto;
-  bottom: -30px;
-}
-
-/* Dimmed State - for events not in the hovered cluster */
-.event-point.dimmed,
-.event-span.dimmed {
-  opacity: 0.25;
-  pointer-events: none;
-}
-
-.event-point.dimmed .point-pulse {
-  animation: none;
 }
 
 /* Selected State - Span Events */
