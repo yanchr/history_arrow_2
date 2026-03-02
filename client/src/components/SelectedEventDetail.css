@@ -143,6 +143,32 @@
   object-fit: contain;
   border-radius: 12px;
   border: 1px solid rgba(148, 163, 184, 0.2);
+  cursor: zoom-in;
+}
+
+.selected-event-image-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(2, 6, 23, 0.82);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.selected-event-image-zoomed {
+  max-width: min(95vw, 1200px);
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  cursor: zoom-out;
 }
 
 .selected-event-dates {
