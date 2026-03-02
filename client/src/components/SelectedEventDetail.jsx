@@ -1,8 +1,28 @@
-import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { formatEventDate } from '../utils/dateUtils'
 import './SelectedEventDetail.css'
 
 function SelectedEventDetail({ event, onClose, onEdit }) {
+  const [isImageZoomed, setIsImageZoomed] = useState(false)
+
+  useEffect(() => {
+    setIsImageZoomed(false)
+  }, [event?.id])
+
+  useEffect(() => {
+    if (!isImageZoomed) return undefined
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setIsImageZoomed(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isImageZoomed])
+
   if (!event) return null
 
   const { title, description, image_url, event_url, date_type } = event
@@ -65,6 +85,16 @@ function SelectedEventDetail({ event, onClose, onEdit }) {
               src={image_url}
               alt={title}
               className="selected-event-image"
+              onClick={() => setIsImageZoomed(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setIsImageZoomed(true)
+                }
+              }}
+              aria-label={`Enlarge image for ${title}`}
             />
           </div>
         )}
@@ -101,6 +131,30 @@ function SelectedEventDetail({ event, onClose, onEdit }) {
         <span>Click another event to view details, or</span>
         <button className="text-btn" onClick={onClose}>dismiss</button>
       </div>
+
+      <AnimatePresence>
+        {isImageZoomed && image_url && (
+          <motion.div
+            className="selected-event-image-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setIsImageZoomed(false)}
+          >
+            <motion.img
+              src={image_url}
+              alt={title}
+              className="selected-event-image-zoomed"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
