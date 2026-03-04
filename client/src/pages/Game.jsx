@@ -175,6 +175,8 @@ function Game() {
   }, [playerNameInputs])
 
   const startRound = useCallback(() => {
+    timelineRef.current?.resetView?.()
+
     if (!filteredEvents.length) {
       setGameError('No events match the current filter.')
       return
