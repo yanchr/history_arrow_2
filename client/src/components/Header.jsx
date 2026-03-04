@@ -29,6 +29,7 @@ function Header() {
 
         <nav className="header-nav">
           <Link to="/" className="nav-link">Timeline</Link>
+          <Link to="/game" className="nav-link">Game Mode</Link>
           {isAuthenticated ? (
             <>
               <Link to="/admin" className="nav-link">Dashboard</Link>

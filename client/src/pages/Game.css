@@ -1,0 +1,145 @@
+.game-page .game-hero {
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.multiplayer-panel {
+  position: fixed;
+  top: 84px;
+  left: 16px;
+  z-index: 80;
+  width: min(320px, calc(100vw - 32px));
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(2, 6, 23, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.multiplayer-panel h3 {
+  margin: 0 0 0.1rem;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+}
+
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.player-row input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 8px;
+  color: #f8fafc;
+  font-size: 0.84rem;
+  padding: 0.38rem 0.55rem;
+}
+
+.player-row.active input {
+  border-color: rgba(34, 197, 94, 0.85);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+.player-meta {
+  min-width: 82px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.38rem;
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.player-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.multiplayer-mode-pill {
+  align-self: flex-start;
+  border-radius: 999px;
+  border: 1px solid rgba(59, 130, 246, 0.55);
+  background: rgba(37, 99, 235, 0.22);
+  color: #bfdbfe;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.24rem 0.52rem;
+}
+
+.game-controls {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.game-status-pill {
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.game-status-pill.active {
+  border: 1px solid rgba(45, 212, 191, 0.6);
+  background: rgba(13, 148, 136, 0.2);
+  color: #99f6e4;
+}
+
+.game-status-pill.revealed {
+  border: 1px solid rgba(249, 115, 22, 0.6);
+  background: rgba(234, 88, 12, 0.2);
+  color: #fdba74;
+}
+
+.game-total-points {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(15, 23, 42, 0.45);
+  color: #e2e8f0;
+  border-radius: 999px;
+  padding: 0.42rem 0.78rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.points-popup {
+  margin: 0.55rem auto 0;
+  width: fit-content;
+  border: 1px solid rgba(34, 197, 94, 0.6);
+  background: rgba(20, 83, 45, 0.45);
+  color: #86efac;
+  border-radius: 999px;
+  padding: 0.36rem 0.72rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.game-error {
+  margin-top: 0.8rem;
+  text-align: center;
+  color: #fca5a5;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 960px) {
+  .multiplayer-panel {
+    position: static;
+    width: 100%;
+    margin-bottom: 0.8rem;
+  }
+}

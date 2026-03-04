@@ -8,7 +8,7 @@
 
 // Default bounds for the timeline
 export const DEFAULT_MIN_YEARS = 0.001 // ~now (minimum)
-export const DEFAULT_MAX_YEARS = 5e9 // 5 billion years ago (maximum)
+export const DEFAULT_MAX_YEARS = 14e9 // 5 billion years ago (maximum)
 
 /**
  * Convert years ago to a position on the logarithmic scale (0-100)

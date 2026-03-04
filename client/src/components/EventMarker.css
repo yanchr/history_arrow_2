@@ -242,3 +242,62 @@
   color: #4ade80;
   font-weight: 600;
 }
+
+/* Game overlay marker variants (same base shape, subtle distinction) */
+.event-point.game-overlay-ghost,
+.event-span.game-overlay-ghost {
+  opacity: 0.75;
+}
+
+.event-point.game-overlay-ghost .point-inner {
+  border-style: dashed;
+}
+
+.event-point.game-overlay-guess,
+.event-span.game-overlay-guess {
+  opacity: 0.68;
+}
+
+.event-point.game-overlay-guess .point-inner {
+  transform: scale(0.94);
+}
+
+.event-point.game-overlay-guess .point-pulse {
+  animation-duration: 2.8s;
+  opacity: 0.2;
+}
+
+.event-span.game-overlay-guess .span-line,
+.event-span.game-overlay-guess .span-cap {
+  opacity: 0.78;
+}
+
+.event-span.game-overlay-guess .span-line {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--label-color, var(--color-accent)) 0px,
+    var(--label-color, var(--color-accent)) 5px,
+    transparent 5px,
+    transparent 10px
+  );
+}
+
+.event-span.game-overlay-guess .span-line::before {
+  opacity: 0.2;
+}
+
+.event-point.game-overlay-actual,
+.event-span.game-overlay-actual {
+  opacity: 1;
+}
+
+.event-point.game-overlay-actual .point-inner {
+  box-shadow:
+    0 0 0 2px var(--label-color, var(--color-point)),
+    0 0 24px color-mix(in srgb, var(--label-color, #00d4ff) 78%, transparent);
+}
+
+.event-span.game-overlay-actual .span-line,
+.event-span.game-overlay-actual .span-cap {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--label-color, var(--color-accent)) 65%, transparent);
+}
