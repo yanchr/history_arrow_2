@@ -156,6 +156,48 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     setCenterInputError('')
   }, [])
 
+  const centerViewOnRevealGuesses = useCallback((event, guessYearsAgoList = []) => {
+    if (!event) return
+
+    const startYearsAgo = eventToYearsAgo(event)
+    const endYearsAgo = eventEndToYearsAgo(event)
+    const centerYearsAgo = endYearsAgo != null
+      ? (startYearsAgo + endYearsAgo) / 2
+      : startYearsAgo
+    const eventHalfDuration = endYearsAgo != null
+      ? Math.abs(startYearsAgo - endYearsAgo) / 2
+      : 0
+
+    const validGuessOffsets = (Array.isArray(guessYearsAgoList) ? guessYearsAgoList : [])
+      .filter((value) => Number.isFinite(value))
+      .map((value) => Math.abs(value - centerYearsAgo))
+
+    const farthestGuessOffset = validGuessOffsets.length
+      ? Math.max(...validGuessOffsets)
+      : 0
+
+    const halfSpan = Math.max(
+      5,
+      eventHalfDuration,
+      farthestGuessOffset
+    ) * 1.08
+
+    const proposedStart = centerYearsAgo - halfSpan
+    const proposedEnd = centerYearsAgo + halfSpan
+    const boundedStart = Math.max(DEFAULT_MIN_YEARS, proposedStart)
+    const boundedEnd = Math.min(DEFAULT_MAX_YEARS, proposedEnd)
+
+    if (boundedEnd - boundedStart < 1) {
+      setViewStart(Math.max(DEFAULT_MIN_YEARS, centerYearsAgo - 0.5))
+      setViewEnd(Math.min(DEFAULT_MAX_YEARS, centerYearsAgo + 0.5))
+    } else {
+      setViewStart(boundedStart)
+      setViewEnd(boundedEnd)
+    }
+    setManualCenterLabel('')
+    setCenterInputError('')
+  }, [])
+
   const centerViewOnYearsAgo = useCallback((yearsAgo) => {
     const safeYearsAgo = Math.max(DEFAULT_MIN_YEARS, Math.min(DEFAULT_MAX_YEARS, yearsAgo))
     // Keep "years ago" value in the middle by anchoring to present (0) and using 2x span.
@@ -448,8 +490,9 @@ const HistoryArrow = forwardRef(function HistoryArrow({
 
   useImperativeHandle(ref, () => ({
     centerOnEvent: centerViewOnEvent,
+    centerOnRevealGuesses: centerViewOnRevealGuesses,
     resetView: handleReset
-  }), [centerViewOnEvent, handleReset])
+  }), [centerViewOnEvent, centerViewOnRevealGuesses, handleReset])
 
   const handleRandomEventSelect = useCallback(() => {
     if (!events || events.length === 0) return

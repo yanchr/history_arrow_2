@@ -136,6 +136,17 @@ function Game() {
     }))
   }, [roundGuesses, roundEvent])
 
+  const roundPointsByPlayer = useMemo(() => {
+    const pointsMap = new Map()
+    roundGuesses.forEach((guess) => {
+      pointsMap.set(
+        guess.playerId,
+        (pointsMap.get(guess.playerId) || 0) + (guess.points || 0)
+      )
+    })
+    return pointsMap
+  }, [roundGuesses])
+
   const getPointsFromRelativeTimeError = useCallback((yearsOff, eventCenterYearsAgo) => {
     if (!Number.isFinite(yearsOff) || !Number.isFinite(eventCenterYearsAgo)) return 0
 
@@ -233,7 +244,7 @@ function Game() {
       setPointsPopup({ points: earnedPoints, key: Date.now() })
       setIsRevealed(true)
       setSelectedEvent(roundEvent)
-      timelineRef.current?.centerOnEvent(roundEvent)
+      timelineRef.current?.centerOnRevealGuesses?.(roundEvent, [yearsAgo])
       return
     }
 
@@ -274,7 +285,10 @@ function Game() {
     setPointsPopup({ points: roundScoreTotal, key: Date.now() })
     setIsRevealed(true)
     setSelectedEvent(roundEvent)
-    timelineRef.current?.centerOnEvent(roundEvent)
+    timelineRef.current?.centerOnRevealGuesses?.(
+      roundEvent,
+      updatedGuesses.map((guess) => guess.yearsAgo)
+    )
     setRoundStartPlayerIndex((prev) => (prev + 1) % players.length)
   }, [
     roundEvent,
@@ -375,7 +389,12 @@ function Game() {
             />
             <div className="player-meta">
               <span className="player-color" style={{ backgroundColor: player.color }} />
-              <span>{player.score} pts</span>
+              <span>
+                {player.score} pts
+                {isRevealed && roundPointsByPlayer.get(player.id)
+                  ? ` · +${roundPointsByPlayer.get(player.id)}`
+                  : ''}
+              </span>
             </div>
           </div>
         ))}
