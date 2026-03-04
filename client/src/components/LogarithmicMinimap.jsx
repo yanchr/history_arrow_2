@@ -7,16 +7,21 @@ import {
   getEraMarkers,
   formatYearsAgoShort,
   eventToYearsAgo,
+  eventEndToYearsAgo,
   DEFAULT_MIN_YEARS,
   DEFAULT_MAX_YEARS
 } from '../utils/logScaleUtils'
 import './LogarithmicMinimap.css'
+
+const PAN_STEP_RATIO = 0.25
+const MAX_PAN_LOG_DECADES = 0.2
 
 function LogarithmicMinimap({
   viewStart,
   viewEnd,
   onViewChange,
   events = [],
+  selectedEvent = null,
   totalMin = DEFAULT_MIN_YEARS,
   totalMax = DEFAULT_MAX_YEARS,
   labelColorMap = new Map()
@@ -27,6 +32,30 @@ function LogarithmicMinimap({
   const [dragStartX, setDragStartX] = useState(0)
   const [initialView, setInitialView] = useState({ start: viewStart, end: viewEnd })
   const justFinishedDragging = useRef(false)
+
+  const getZoomBounds = useCallback((center, halfSpan) => {
+    const clampedCenter = Math.max(totalMin, Math.min(totalMax, center))
+    const totalRange = totalMax - totalMin
+    const safeHalfSpan = Math.min(Math.max(halfSpan, 0), totalRange / 2)
+
+    let start = clampedCenter - safeHalfSpan
+    let end = clampedCenter + safeHalfSpan
+
+    // If one side hits a bound, shift the opposite side so zoom still expands.
+    if (start < totalMin) {
+      const shift = totalMin - start
+      start = totalMin
+      end = Math.min(totalMax, end + shift)
+    }
+
+    if (end > totalMax) {
+      const shift = end - totalMax
+      end = totalMax
+      start = Math.max(totalMin, start - shift)
+    }
+
+    return { start, end }
+  }, [totalMin, totalMax])
 
   // Calculate viewfinder position from years
   const viewfinderLeft = yearToLogPosition(viewEnd, totalMin, totalMax)
@@ -133,7 +162,8 @@ function LogarithmicMinimap({
     const logStart = Math.log10(viewStart)
     const logEnd = Math.log10(viewEnd)
     const currentSpan = logEnd - logStart
-    const panAmount = currentSpan * 0.25 // Pan by 25% of the visible range
+    // Keep zoomed-in movement familiar, but cap jumps when zoomed far out.
+    const panAmount = Math.min(currentSpan * PAN_STEP_RATIO, MAX_PAN_LOG_DECADES)
 
     const newLogStart = logStart + panAmount
     const newLogEnd = logEnd + panAmount
@@ -158,7 +188,8 @@ function LogarithmicMinimap({
     const logStart = Math.log10(viewStart)
     const logEnd = Math.log10(viewEnd)
     const currentSpan = logEnd - logStart
-    const panAmount = currentSpan * 0.25 // Pan by 25% of the visible range
+    // Keep zoomed-in movement familiar, but cap jumps when zoomed far out.
+    const panAmount = Math.min(currentSpan * PAN_STEP_RATIO, MAX_PAN_LOG_DECADES)
 
     const newLogStart = logStart - panAmount
     const newLogEnd = logEnd - panAmount
@@ -180,27 +211,33 @@ function LogarithmicMinimap({
 
   // Handle zoom in — centered on the linear timeline midpoint
   const handleZoomIn = useCallback(() => {
-    const center = (viewStart + viewEnd) / 2
+    const selectedStart = selectedEvent ? eventToYearsAgo(selectedEvent) : null
+    const selectedEnd = selectedEvent ? eventEndToYearsAgo(selectedEvent) : null
+    const selectedCenter = Number.isFinite(selectedStart)
+      ? (Number.isFinite(selectedEnd) ? (selectedStart + selectedEnd) / 2 : selectedStart)
+      : null
+    const center = selectedCenter ?? ((viewStart + viewEnd) / 2)
     const halfSpan = (viewEnd - viewStart) / 2
     const newHalfSpan = halfSpan * 0.7
+    const nextBounds = getZoomBounds(center, newHalfSpan)
 
-    onViewChange(
-      Math.max(totalMin, center - newHalfSpan),
-      Math.min(totalMax, center + newHalfSpan)
-    )
-  }, [viewStart, viewEnd, totalMin, totalMax, onViewChange])
+    onViewChange(nextBounds.start, nextBounds.end)
+  }, [viewStart, viewEnd, selectedEvent, onViewChange, getZoomBounds])
 
   // Handle zoom out — centered on the linear timeline midpoint
   const handleZoomOut = useCallback(() => {
-    const center = (viewStart + viewEnd) / 2
+    const selectedStart = selectedEvent ? eventToYearsAgo(selectedEvent) : null
+    const selectedEnd = selectedEvent ? eventEndToYearsAgo(selectedEvent) : null
+    const selectedCenter = Number.isFinite(selectedStart)
+      ? (Number.isFinite(selectedEnd) ? (selectedStart + selectedEnd) / 2 : selectedStart)
+      : null
+    const center = selectedCenter ?? ((viewStart + viewEnd) / 2)
     const halfSpan = (viewEnd - viewStart) / 2
     const newHalfSpan = halfSpan * 1.4
+    const nextBounds = getZoomBounds(center, newHalfSpan)
 
-    onViewChange(
-      Math.max(totalMin, center - newHalfSpan),
-      Math.min(totalMax, center + newHalfSpan)
-    )
-  }, [viewStart, viewEnd, totalMin, totalMax, onViewChange])
+    onViewChange(nextBounds.start, nextBounds.end)
+  }, [viewStart, viewEnd, selectedEvent, onViewChange, getZoomBounds])
 
   // Add global mouse listeners when dragging
   useEffect(() => {
