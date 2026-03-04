@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getAuthHeaders } from '../utils/supabase'
+import { supabase } from '../utils/supabase'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+function toReadableError(error, fallbackMessage) {
+  if (!error) return fallbackMessage
+  if (error.code === '42501') return 'Not authorized. Please sign in with an admin account.'
+  return error.message || fallbackMessage
+}
 
 export function useEvents() {
   const [events, setEvents] = useState([])
@@ -12,14 +16,14 @@ export function useEvents() {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch(`${API_URL}/api/events`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch events')
-      }
-      const data = await response.json()
+      const { data, error: fetchError } = await supabase
+        .from('events')
+        .select('*')
+        .order('created_at', { ascending: true })
+      if (fetchError) throw fetchError
       setEvents(data)
     } catch (err) {
-      setError(err.message)
+      setError(toReadableError(err, 'Failed to fetch events'))
     } finally {
       setLoading(false)
     }
@@ -30,52 +34,39 @@ export function useEvents() {
   }, [fetchEvents])
 
   const createEvent = async (eventData) => {
-    const auth = await getAuthHeaders()
-    const response = await fetch(`${API_URL}/api/events`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...auth
-      },
-      body: JSON.stringify(eventData)
-    })
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to create event')
+    const { data: newEvent, error: createError } = await supabase
+      .from('events')
+      .insert([eventData])
+      .select()
+      .single()
+    if (createError) {
+      throw new Error(toReadableError(createError, 'Failed to create event'))
     }
-    const newEvent = await response.json()
     setEvents(prev => [...prev, newEvent])
     return newEvent
   }
 
   const updateEvent = async (id, eventData) => {
-    const auth = await getAuthHeaders()
-    const response = await fetch(`${API_URL}/api/events/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...auth
-      },
-      body: JSON.stringify(eventData)
-    })
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to update event')
+    const { data: updatedEvent, error: updateError } = await supabase
+      .from('events')
+      .update(eventData)
+      .eq('id', id)
+      .select()
+      .single()
+    if (updateError) {
+      throw new Error(toReadableError(updateError, 'Failed to update event'))
     }
-    const updatedEvent = await response.json()
     setEvents(prev => prev.map(e => e.id === id ? updatedEvent : e))
     return updatedEvent
   }
 
   const deleteEvent = async (id) => {
-    const auth = await getAuthHeaders()
-    const response = await fetch(`${API_URL}/api/events/${id}`, {
-      method: 'DELETE',
-      headers: auth
-    })
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to delete event')
+    const { error: deleteError } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', id)
+    if (deleteError) {
+      throw new Error(toReadableError(deleteError, 'Failed to delete event'))
     }
     setEvents(prev => prev.filter(e => e.id !== id))
   }

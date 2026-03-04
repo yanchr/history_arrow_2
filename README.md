@@ -77,7 +77,8 @@ npm install
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-VITE_API_URL=http://localhost:5000
+# Optional: only needed if you still run the Express API layer
+# VITE_API_URL=http://localhost:5000
 ```
 
 **Server** (`server/.env`):
@@ -169,6 +170,13 @@ The application supports ancient dates (BCE/BC) through special formatting:
 1. Deploy the `server` directory
 2. Set `NODE_ENV=production`
 3. Configure environment variables
+
+### Supabase-Only Mode (No Backend Host)
+You can run this project without deploying the `server` directory by calling Supabase directly from the frontend:
+1. Ensure `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set for the client.
+2. Run `supabase-schema.sql` in Supabase SQL Editor.
+3. Run `supabase-storage-policies.sql` if you upload images.
+4. Run `supabase-rls-admin-policies.sql` and add your auth user id as admin for safe write access.
 
 ## License
 

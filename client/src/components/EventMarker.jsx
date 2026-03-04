@@ -109,12 +109,11 @@ function EventMarker({
       initial={{ opacity: 0, scale: 0 }}
       animate={{ 
         opacity: 1,
-        scale: 1,
-        left: `${startPos}%`
+        scale: 1
       }}
       whileHover={{ scale: 1.2 }}
       whileTap={{ scale: 0.9 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
     >
       <div className="point-marker">
         <div className="point-inner" />
