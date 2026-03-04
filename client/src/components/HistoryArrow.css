@@ -322,7 +322,7 @@
 
 .hover-time {
   position: absolute;
-  top: 50px;
+  top: 24px;
   left: 50%;
   transform: translateX(-50%);
   background: var(--color-bg-secondary, #1a1a2e);
@@ -338,7 +338,7 @@
 
 .hover-time-secondary {
   position: absolute;
-  top: 84px;
+  top: 58px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(26, 26, 46, 0.92);

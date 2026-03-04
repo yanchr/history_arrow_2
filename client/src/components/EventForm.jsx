@@ -305,99 +305,6 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
           )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="description" className="form-label">Description</label>
-          <textarea
-            id="description"
-            name="description"
-            className="form-textarea"
-            value={formData.description}
-            onChange={handleChange}
-            placeholder="Describe this historical event..."
-            rows={4}
-            disabled={submitting}
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="event_url" className="form-label">External Link</label>
-          <input
-            id="event_url"
-            name="event_url"
-            type="url"
-            className="form-input"
-            value={formData.event_url}
-            onChange={handleChange}
-            placeholder="https://example.com"
-            disabled={submitting}
-          />
-          <p className="form-hint">Optional source or reference link for this event.</p>
-        </div>
-
-        {/* Picture */}
-        <div className="form-group">
-          <label className="form-label">Picture</label>
-          {formData.image_url ? (
-            <div className="image-preview-container">
-              <img
-                src={formData.image_url}
-                alt="Preview"
-                className="image-preview"
-              />
-              <div className="image-preview-actions">
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={handleRemoveImage}
-                  disabled={submitting}
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="image-upload-options">
-              <div className="image-url-input">
-                <input
-                  id="image_url"
-                  name="image_url"
-                  type="url"
-                  className="form-input"
-                  value={formData.image_url}
-                  onChange={handleChange}
-                  placeholder="Paste image URL..."
-                  disabled={submitting}
-                />
-              </div>
-              <div className="image-upload-divider">or</div>
-              <div className="image-file-upload">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  disabled={submitting || uploading}
-                  className="image-file-input"
-                />
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={submitting || uploading}
-                >
-                  {uploading ? 'Uploading...' : 'Upload image'}
-                </button>
-              </div>
-            </div>
-          )}
-          {uploadError && (
-            <span className="form-error">{uploadError}</span>
-          )}
-          <p className="form-hint">
-            Add an optional image. Paste a URL or upload to Supabase Storage (requires event-images bucket).
-          </p>
-        </div>
-
         {/* Label Selector */}
         <div className="form-group">
           <label htmlFor="label" className="form-label">Label</label>
@@ -630,6 +537,99 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <div className="form-group">
+          <label htmlFor="event_url" className="form-label">External Link</label>
+          <input
+            id="event_url"
+            name="event_url"
+            type="url"
+            className="form-input"
+            value={formData.event_url}
+            onChange={handleChange}
+            placeholder="https://example.com"
+            disabled={submitting}
+          />
+          <p className="form-hint">Optional source or reference link for this event.</p>
+        </div>
+
+        {/* Picture */}
+        <div className="form-group">
+          <label className="form-label">Picture</label>
+          {formData.image_url ? (
+            <div className="image-preview-container">
+              <img
+                src={formData.image_url}
+                alt="Preview"
+                className="image-preview"
+              />
+              <div className="image-preview-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleRemoveImage}
+                  disabled={submitting}
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="image-upload-options">
+              <div className="image-url-input">
+                <input
+                  id="image_url"
+                  name="image_url"
+                  type="url"
+                  className="form-input"
+                  value={formData.image_url}
+                  onChange={handleChange}
+                  placeholder="Paste image URL..."
+                  disabled={submitting}
+                />
+              </div>
+              <div className="image-upload-divider">or</div>
+              <div className="image-file-upload">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  disabled={submitting || uploading}
+                  className="image-file-input"
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={submitting || uploading}
+                >
+                  {uploading ? 'Uploading...' : 'Upload image'}
+                </button>
+              </div>
+            </div>
+          )}
+          {uploadError && (
+            <span className="form-error">{uploadError}</span>
+          )}
+          <p className="form-hint">
+            Add an optional image. Paste a URL or upload to Supabase Storage (requires event-images bucket).
+          </p>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="description" className="form-label">Description</label>
+          <textarea
+            id="description"
+            name="description"
+            className="form-textarea"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="Describe this historical event..."
+            rows={4}
+            disabled={submitting}
+          />
+        </div>
 
         <div className="form-actions">
           <button

@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
 import Home from './pages/Home'
+import Game from './pages/Game'
 import Admin from './pages/Admin'
 import Login from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -14,6 +15,7 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/game" element={<Game />} />
             <Route path="/login" element={<Login />} />
             <Route
               path="/admin"

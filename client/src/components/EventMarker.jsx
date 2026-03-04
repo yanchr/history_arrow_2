@@ -8,7 +8,10 @@ function EventMarker({
   isHovered, 
   isSelected,
   showLabel = true,
-  labelColor = null
+  labelColor = null,
+  markerColor = null,
+  className = '',
+  disablePointerEvents = false
 }) {
   const {
     startPos,
@@ -36,6 +39,8 @@ function EventMarker({
     }
   }
 
+  const resolvedMarkerColor = markerColor || labelColor || '#00d4ff'
+
   // For spans, always show labels (they're usually important periods)
   if (isSpan) {
     const width = Math.max(endPos - startPos, 2)
@@ -44,12 +49,14 @@ function EventMarker({
 
     return (
       <motion.div
-        className={`event-span ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''}`}
+        className={`event-span ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''} ${className}`.trim()}
         style={{
           left: `${startPos}%`,
           width: `${width}%`,
           top: `calc(50% + (${laneOffset} * var(--span-lane-gap, 22px)))`,
-          '--label-color': labelColor || '#00d4ff'
+          '--label-color': resolvedMarkerColor,
+          '--marker-color': resolvedMarkerColor,
+          pointerEvents: disablePointerEvents ? 'none' : undefined
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -88,11 +95,13 @@ function EventMarker({
   // Render as a point marker
   return (
     <motion.div
-      className={`event-point ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''}`}
+      className={`event-point ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''} ${className}`.trim()}
       style={{
         left: `${startPos}%`,
         top: `calc(50% + (${pointLaneOffset} * var(--point-lane-gap, 28px)))`,
-        '--label-color': labelColor || '#00d4ff'
+        '--label-color': resolvedMarkerColor,
+        '--marker-color': resolvedMarkerColor,
+        pointerEvents: disablePointerEvents ? 'none' : undefined
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

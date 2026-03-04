@@ -23,8 +23,12 @@ const CURRENT_YEAR = NOW.getFullYear() + (NOW - YEAR_START) / (YEAR_END - YEAR_S
 const IPHONE_MAX_WIDTH = 430
 const IPHONE_MAX_SPAN_LANES = 4
 const IPHONE_MAX_POINT_LANES = 5
-const DESKTOP_MAX_SPAN_LANES = 10
-const DESKTOP_MAX_POINT_LANES = 10
+const DESKTOP_MAX_SPAN_LANES = 15
+const DESKTOP_MAX_POINT_LANES = 15
+const IPHONE_VISIBLE_SPAN_LABEL_LANES = 2
+const IPHONE_VISIBLE_POINT_LABEL_LANES = 2
+const DESKTOP_VISIBLE_SPAN_LABEL_LANES = 5
+const DESKTOP_VISIBLE_POINT_LABEL_LANES = 4
 const SPAN_OVERLAP_PADDING_PERCENT = 0.35
 const POINT_OVERLAP_PADDING_PERCENT = 0.25
 const POINT_COLLISION_WIDTH_PERCENT = 1.6
@@ -106,7 +110,22 @@ const buildLaneLayout = (
   }
 }
 
-const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, onEventClick, onVisibleEventsChange, labelColorMap = new Map() }, ref) {
+const HistoryArrow = forwardRef(function HistoryArrow({
+  events,
+  selectedEvent,
+  onEventClick,
+  onVisibleEventsChange,
+  labelColorMap = new Map(),
+  title = 'Timeline of History',
+  hiddenEventIds = [],
+  showRandomEventButton = true,
+  gameGhostEvent = null,
+  gameGhostColor = null,
+  gameGuessMarkers = [],
+  onGameGuessMove,
+  onGameGuessPlace,
+  gameReveal = null
+}, ref) {
   const [hoveredEvent, setHoveredEvent] = useState(null)
   const [timelineHover, setTimelineHover] = useState({ active: false, x: 0, yearsAgo: 0 })
   const [isIphoneViewport, setIsIphoneViewport] = useState(false)
@@ -122,6 +141,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
   const [viewEnd, setViewEnd] = useState(CURRENT_YEAR) // Default to year 0 (2026 years ago)
   const timelineRef = useRef(null)
   const eventsLayerRef = useRef(null)
+  const hiddenEventIdSet = useMemo(() => new Set(hiddenEventIds), [hiddenEventIds])
 
   const centerViewOnEvent = useCallback((event) => {
     const startYearsAgo = eventToYearsAgo(event)
@@ -246,6 +266,10 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
         }
       })
       .filter(event => {
+        if (hiddenEventIdSet.has(event.id)) {
+          return false
+        }
+
         // Filter out events completely outside the current view BEFORE positioning
         // viewStart = closest to present (smaller years ago)
         // viewEnd = furthest in past (larger years ago)
@@ -278,7 +302,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
           endPos
         }
       })
-  }, [events, viewStart, viewEnd])
+  }, [events, viewStart, viewEnd, hiddenEventIdSet])
 
   const spanLaneLayout = useMemo(() => {
     const laneItems = positionedEvents
@@ -478,7 +502,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
     
     const rect = eventsLayerRef.current.getBoundingClientRect()
     const x = e.clientX - rect.left
-    const percentage = (x / rect.width) * 100
+    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100))
     
     // Convert position to years ago
     const yearsAgo = linearPositionToYear(percentage, viewStart, viewEnd)
@@ -488,11 +512,23 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
       x: e.clientX - rect.left + 60, // Offset for the events layer margin
       yearsAgo
     })
-  }, [viewStart, viewEnd])
+    onGameGuessMove?.({ percentage, yearsAgo })
+  }, [viewStart, viewEnd, onGameGuessMove])
 
   const handleTimelineMouseLeave = useCallback(() => {
     setTimelineHover(prev => ({ ...prev, active: false }))
   }, [])
+
+  const handleTimelineClick = useCallback(() => {
+    if (!timelineHover.active) return
+
+    const guessPercentage = yearToLinearPosition(timelineHover.yearsAgo, viewStart, viewEnd)
+
+    onGameGuessPlace?.({
+      percentage: guessPercentage,
+      yearsAgo: timelineHover.yearsAgo
+    })
+  }, [timelineHover, onGameGuessPlace, viewStart, viewEnd])
 
   const formatHoverTime = (yearsAgo) => {
     if (yearsAgo <= CURRENT_YEAR) {
@@ -561,10 +597,83 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
     return lines
   }
 
+  const buildGhostPlacement = useCallback((event, centerYearsAgo) => {
+    if (!event || centerYearsAgo === null || centerYearsAgo === undefined) return null
+
+    const startYearsAgo = eventToYearsAgo(event)
+    const endYearsAgo = eventEndToYearsAgo(event)
+    const isSpan = endYearsAgo !== null && endYearsAgo !== undefined
+    const duration = isSpan ? Math.max(0, startYearsAgo - endYearsAgo) : 0
+    const guessStartYears = isSpan ? centerYearsAgo + duration / 2 : centerYearsAgo
+    const guessEndYears = isSpan ? centerYearsAgo - duration / 2 : null
+
+    return {
+      isSpan,
+      centerYearsAgo,
+      startPos: yearToLinearPosition(guessStartYears, viewStart, viewEnd),
+      endPos: guessEndYears !== null
+        ? yearToLinearPosition(guessEndYears, viewStart, viewEnd)
+        : null
+    }
+  }, [viewStart, viewEnd])
+
+  const ghostPlacement = useMemo(() => {
+    if (!gameGhostEvent || !timelineHover.active) return null
+    return buildGhostPlacement(gameGhostEvent, timelineHover.yearsAgo)
+  }, [gameGhostEvent, timelineHover, buildGhostPlacement])
+
+  const minimapEvents = useMemo(() => {
+    if (!hiddenEventIdSet.size) return events
+    return events.filter(event => !hiddenEventIdSet.has(event.id))
+  }, [events, hiddenEventIdSet])
+
+  const ghostMarkerEvent = useMemo(() => {
+    if (!ghostPlacement || !gameGhostEvent) return null
+    return {
+      ...gameGhostEvent,
+      id: `ghost-${gameGhostEvent.id}`,
+      isSpan: ghostPlacement.isSpan,
+      startPos: ghostPlacement.startPos,
+      endPos: ghostPlacement.endPos,
+      spanLaneRing: 1,
+      spanLaneDirection: -1,
+      pointLaneRing: 1,
+      pointLaneDirection: -1
+    }
+  }, [ghostPlacement, gameGhostEvent])
+
+  const persistedGuessMarkerEvents = useMemo(() => {
+    if (!Array.isArray(gameGuessMarkers) || gameGuessMarkers.length === 0) return []
+
+    return gameGuessMarkers
+      .map((marker) => {
+        const sourceEvent = marker.event || gameGhostEvent || gameReveal?.event
+        if (!sourceEvent) return null
+
+        const placement = buildGhostPlacement(sourceEvent, marker.yearsAgo)
+        if (!placement) return null
+
+        return {
+          ...sourceEvent,
+          id: `persisted-guess-${marker.id}`,
+          isSpan: placement.isSpan,
+          startPos: placement.startPos,
+          endPos: placement.endPos,
+          spanLaneRing: marker.laneRing || 1,
+          spanLaneDirection: marker.laneDirection || 1,
+          pointLaneRing: marker.laneRing || 1,
+          pointLaneDirection: marker.laneDirection || 1,
+          _markerColor: marker.color || null,
+          _overlayClass: marker.overlayClass || 'game-overlay-guess'
+        }
+      })
+      .filter(Boolean)
+  }, [gameGuessMarkers, gameGhostEvent, gameReveal, buildGhostPlacement])
+
   return (
     <div className="history-arrow-container">
       <div className="timeline-header">
-        <h3 className="timeline-title">Timeline of History</h3>
+        <h3 className="timeline-title">{title}</h3>
         <div className="timeline-actions">
           <form className="center-input-form" onSubmit={handleCenterInputSubmit}>
             <div className="center-input-row">
@@ -595,14 +704,16 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
             </div>
             {centerInputError && <span className="center-input-error">{centerInputError}</span>}
           </form>
-          <button className="random-event-btn" onClick={handleRandomEventSelect}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M4 8l4-4 4 4-4 4-4-4z" />
-              <path d="M12 16l4-4 4 4-4 4-4-4z" />
-              <path d="M9 15l6-6" />
-            </svg>
-            Random Event
-          </button>
+          {showRandomEventButton && (
+            <button className="random-event-btn" onClick={handleRandomEventSelect}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 8l4-4 4 4-4 4-4-4z" />
+                <path d="M12 16l4-4 4 4-4 4-4-4z" />
+                <path d="M9 15l6-6" />
+              </svg>
+              Random Event
+            </button>
+          )}
           <button className="reset-view-btn" onClick={handleReset}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -662,9 +773,22 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
             className="events-layer"
             onMouseMove={handleTimelineMouseMove}
             onMouseLeave={handleTimelineMouseLeave}
+            onClick={handleTimelineClick}
           >
             {laneAwareEvents.map(event => {
               const eventLabelColor = labelColorMap.get(event.label) || null
+              const labelLaneBudget = event.isSpan
+                ? Math.min(
+                    event.spanEffectiveLaneCount,
+                    isIphoneViewport ? IPHONE_VISIBLE_SPAN_LABEL_LANES : DESKTOP_VISIBLE_SPAN_LABEL_LANES
+                  )
+                : Math.min(
+                    event.pointEffectiveLaneCount,
+                    isIphoneViewport ? IPHONE_VISIBLE_POINT_LABEL_LANES : DESKTOP_VISIBLE_POINT_LABEL_LANES
+                  )
+              const shouldShowLabel = event.isSpan
+                ? event.spanLaneIndex < labelLaneBudget
+                : event.pointLaneIndex < labelLaneBudget
 
               return (
                 <EventMarker
@@ -674,11 +798,40 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
                   onClick={onEventClick}
                   isHovered={hoveredEvent?.id === event.id}
                   isSelected={selectedEvent?.id === event.id}
-                  showLabel
+                  showLabel={shouldShowLabel}
                   labelColor={eventLabelColor}
                 />
               )
             })}
+            {ghostMarkerEvent && (
+              <EventMarker
+                event={ghostMarkerEvent}
+                onHover={() => {}}
+                onClick={null}
+                isHovered
+                isSelected={false}
+                showLabel
+                disablePointerEvents
+                className="game-overlay-ghost"
+                labelColor={labelColorMap.get(ghostMarkerEvent.label) || null}
+                markerColor={gameGhostColor}
+              />
+            )}
+            {persistedGuessMarkerEvents.map((markerEvent) => (
+              <EventMarker
+                key={markerEvent.id}
+                event={markerEvent}
+                onHover={() => {}}
+                onClick={null}
+                isHovered
+                isSelected={false}
+                showLabel
+                disablePointerEvents
+                className={markerEvent._overlayClass}
+                labelColor={labelColorMap.get(markerEvent.label) || null}
+                markerColor={markerEvent._markerColor}
+              />
+            ))}
           </div>
 
           {/* View range labels */}
@@ -723,7 +876,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({ events, selectedEvent, o
         viewStart={viewStart}
         viewEnd={viewEnd}
         onViewChange={handleViewChange}
-        events={events}
+        events={minimapEvents}
         totalMin={DEFAULT_MIN_YEARS}
         totalMax={DEFAULT_MAX_YEARS}
         labelColorMap={labelColorMap}
