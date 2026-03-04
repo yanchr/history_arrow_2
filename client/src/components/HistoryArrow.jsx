@@ -205,10 +205,6 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     return () => observer.disconnect()
   }, [])
 
-  useImperativeHandle(ref, () => ({
-    centerOnEvent: centerViewOnEvent
-  }), [centerViewOnEvent])
-
   // Calculate the overall bounds from events
   const eventBounds = useMemo(() => {
     if (!events || events.length === 0) {
@@ -449,6 +445,11 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     setManualCenterLabel('')
     setCenterInputError('')
   }, [])
+
+  useImperativeHandle(ref, () => ({
+    centerOnEvent: centerViewOnEvent,
+    resetView: handleReset
+  }), [centerViewOnEvent, handleReset])
 
   const handleRandomEventSelect = useCallback(() => {
     if (!events || events.length === 0) return
