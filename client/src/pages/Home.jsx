@@ -5,6 +5,7 @@ import SelectedEventDetail from '../components/SelectedEventDetail'
 import { useEvents } from '../hooks/useEvents'
 import { useAuth } from '../hooks/useAuth'
 import { useLabels } from '../hooks/useLabels'
+import { useSeo } from '../hooks/useSeo'
 import EventForm from '../components/EventForm'
 import { formatEventDate } from '../utils/dateUtils'
 import { sampleEvents } from '../data/sampleEvents'
@@ -19,6 +20,12 @@ const isEventSpan = (event) => {
 }
 
 function Home() {
+  useSeo({
+    title: 'Interactive Timeline of Historical Events',
+    description: 'Explore world history on an interactive timeline. Discover point events and time spans across ancient, historical, and modern eras.',
+    path: '/'
+  })
+
   const { events, loading, error, updateEvent } = useEvents()
   const { isAuthenticated } = useAuth()
   const { labels, labelColorMap } = useLabels()
@@ -122,6 +129,7 @@ function Home() {
 
   return (
     <div className="home-page">
+      <h1 className="visually-hidden">History Arrow Timeline Explorer</h1>
       <div className="label-filter-bar">
         <div className="filter-mode-toggle">
           <button

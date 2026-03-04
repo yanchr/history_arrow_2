@@ -4,6 +4,7 @@ import HistoryArrow from '../components/HistoryArrow'
 import SelectedEventDetail from '../components/SelectedEventDetail'
 import { useEvents } from '../hooks/useEvents'
 import { useLabels } from '../hooks/useLabels'
+import { useSeo } from '../hooks/useSeo'
 import { sampleEvents } from '../data/sampleEvents'
 import { formatEventDate } from '../utils/dateUtils'
 import { eventToYearsAgo, eventEndToYearsAgo, formatYearsAgoShort } from '../utils/logScaleUtils'
@@ -29,6 +30,12 @@ const PLAYER_COLORS = [
 ]
 
 function Game() {
+  useSeo({
+    title: 'Timeline Guessing Game',
+    description: 'Play a historical timeline game: guess where hidden events belong, score points, and challenge friends in multiplayer mode.',
+    path: '/game'
+  })
+
   const { events, loading, error } = useEvents()
   const { labels, labelColorMap } = useLabels()
   const timelineRef = useRef(null)
