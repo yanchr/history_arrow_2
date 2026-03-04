@@ -32,17 +32,18 @@ const DESKTOP_VISIBLE_POINT_LABEL_LANES = 4
 const SPAN_OVERLAP_PADDING_PERCENT = 0.35
 const POINT_OVERLAP_PADDING_PERCENT = 0.25
 const POINT_COLLISION_WIDTH_PERCENT = 1.6
+const MIN_VISIBLE_SPAN_WIDTH_PERCENT = 1.2
 const POINT_MARKER_WIDTH_PX = 16
 const POINT_LABEL_MAX_WIDTH_PX = 120
 const SPAN_LABEL_MAX_WIDTH_PX = 150
 const LABEL_CHAR_WIDTH_PX = 6.4
 const LABEL_PADDING_PX = 20
-const DESKTOP_TIMELINE_BASE_HEIGHT = 200
-const MOBILE_TIMELINE_BASE_HEIGHT = 160
-const DESKTOP_SPAN_LANE_GAP = 22
+const DESKTOP_TIMELINE_BASE_HEIGHT = 170
+const MOBILE_TIMELINE_BASE_HEIGHT = 136
+const DESKTOP_SPAN_LANE_GAP = 20
 const MOBILE_SPAN_LANE_GAP = 16
-const DESKTOP_POINT_LANE_GAP = 28
-const MOBILE_POINT_LANE_GAP = 22
+const DESKTOP_POINT_LANE_GAP = 20
+const MOBILE_POINT_LANE_GAP = 14
 
 const estimateLabelWidthPx = (title, maxWidthPx) => {
   const safeTitle = typeof title === 'string' ? title : ''
@@ -117,6 +118,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   onVisibleEventsChange,
   labelColorMap = new Map(),
   title = 'Timeline of History',
+  titleHint = '',
   hiddenEventIds = [],
   showRandomEventButton = true,
   gameGhostEvent = null,
@@ -334,10 +336,21 @@ const HistoryArrow = forwardRef(function HistoryArrow({
           ? yearToLinearPosition(event.endYearsAgo, viewStart, viewEnd)
           : null
 
+        const spanWidth = endPos !== null ? Math.abs(endPos - startPos) : 0
+        const shouldRenderAsPoint = event.isSpan && spanWidth < MIN_VISIBLE_SPAN_WIDTH_PERCENT
+        const centeredYearsAgo = event.endYearsAgo !== null
+          ? (event.yearsAgo + event.endYearsAgo) / 2
+          : event.yearsAgo
+        const centeredPos = endPos !== null
+          ? (startPos + endPos) / 2
+          : startPos
+
         return {
           ...event,
-          startPos,
-          endPos
+          yearsAgo: shouldRenderAsPoint ? centeredYearsAgo : event.yearsAgo,
+          isSpan: shouldRenderAsPoint ? false : event.isSpan,
+          startPos: shouldRenderAsPoint ? centeredPos : startPos,
+          endPos: shouldRenderAsPoint ? null : endPos
         }
       })
   }, [events, viewStart, viewEnd, hiddenEventIdSet])
@@ -717,7 +730,12 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   return (
     <div className="history-arrow-container">
       <div className="timeline-header">
-        <h3 className="timeline-title">{title}</h3>
+        <div className="timeline-title-group">
+          <h3 className="timeline-title">{title}</h3>
+          {titleHint && (
+            <span className="timeline-title-hint">{titleHint}</span>
+          )}
+        </div>
         <div className="timeline-actions">
           <form className="center-input-form" onSubmit={handleCenterInputSubmit}>
             <div className="center-input-row">
@@ -921,6 +939,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
         viewEnd={viewEnd}
         onViewChange={handleViewChange}
         events={minimapEvents}
+        selectedEvent={selectedEvent}
         totalMin={DEFAULT_MIN_YEARS}
         totalMax={DEFAULT_MAX_YEARS}
         labelColorMap={labelColorMap}

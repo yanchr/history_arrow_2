@@ -122,19 +122,6 @@ function Home() {
 
   return (
     <div className="home-page">
-      <motion.section
-        className="hero-section"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <h1 className="hero-title">Explore History</h1>
-        <p className="hero-subtitle">
-          Journey through time with our interactive chronological explorer.
-          Hover over events to preview, or click to view details.
-        </p>
-      </motion.section>
-
       <div className="label-filter-bar">
         <div className="filter-mode-toggle">
           <button
@@ -204,6 +191,7 @@ function Home() {
             onEventClick={handleEventClick}
             onVisibleEventsChange={handleVisibleEventsChange}
             labelColorMap={labelColorMap}
+            titleHint="Hover over events to preview, or click to view details."
           />
         )}
       </motion.section>

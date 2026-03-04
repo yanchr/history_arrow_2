@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import './EventMarker.css'
 
+const MIN_SPAN_WIDTH_PERCENT = 1.2
+
 function EventMarker({ 
   event, 
   onHover, 
@@ -43,7 +45,9 @@ function EventMarker({
 
   // For spans, always show labels (they're usually important periods)
   if (isSpan) {
-    const width = Math.max(endPos - startPos, 2)
+    const spanLeft = Math.min(startPos, endPos)
+    const spanWidth = Math.abs(endPos - startPos)
+    const width = Math.max(spanWidth, MIN_SPAN_WIDTH_PERCENT)
     const laneOffset = spanLaneDirection * spanLaneRing
     const isBelowBaseline = spanLaneDirection > 0
 
@@ -51,7 +55,7 @@ function EventMarker({
       <motion.div
         className={`event-span ${isHovered ? 'hovered' : ''} ${isSelected ? 'selected' : ''} ${className}`.trim()}
         style={{
-          left: `${startPos}%`,
+          left: `${spanLeft}%`,
           width: `${width}%`,
           top: `calc(50% + (${laneOffset} * var(--span-lane-gap, 22px)))`,
           '--label-color': resolvedMarkerColor,
