@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEvents } from '../hooks/useEvents'
 import { useLabels } from '../hooks/useLabels'
+import { useSeo } from '../hooks/useSeo'
 import EventForm from '../components/EventForm'
 import { formatEventDate } from '../utils/dateUtils'
 import './Admin.css'
@@ -41,6 +42,13 @@ const getEventSortValue = (event) => {
 }
 
 function Admin() {
+  useSeo({
+    title: 'Admin Dashboard',
+    description: 'Admin dashboard for creating and editing timeline events in History Arrow.',
+    path: '/admin',
+    robots: 'noindex, nofollow'
+  })
+
   const { events, loading, error, createEvent, updateEvent, deleteEvent, refetch } = useEvents()
   const { labels, createLabel, updateLabel, deleteLabel, labelColorMap } = useLabels()
   const [showForm, setShowForm] = useState(false)

@@ -2,9 +2,17 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
+import { useSeo } from '../hooks/useSeo'
 import './Login.css'
 
 function Login() {
+  useSeo({
+    title: 'Admin Login',
+    description: 'Admin access for managing History Arrow timeline content.',
+    path: '/login',
+    robots: 'noindex, nofollow'
+  })
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
