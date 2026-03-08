@@ -1,12 +1,18 @@
-- Supabase Schema for History Arrow
+-- Supabase Schema for History Arrow
 -- Run this SQL in your Supabase SQL Editor to set up the database
 
 -- ============================================
 -- MIGRATIONS: If you have an existing database, run these as needed:
 -- Add image_url:
 --   ALTER TABLE events ADD COLUMN IF NOT EXISTS image_url TEXT;
--- Add event_url:
---   ALTER TABLE events ADD COLUMN IF NOT EXISTS event_url TEXT;
+-- Rename event_url to source_url:
+--   ALTER TABLE events RENAME COLUMN event_url TO source_url;
+-- Add rights/publishing metadata:
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS attribution_text TEXT;
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS is_published BOOLEAN NOT NULL DEFAULT false;
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS license_type VARCHAR(80);
+-- Backfill null booleans in existing data:
+--   UPDATE events SET is_published = false WHERE is_published IS NULL;
 -- Add label:
 --   ALTER TABLE events ADD COLUMN IF NOT EXISTS label VARCHAR(50) DEFAULT NULL;
 --   CREATE INDEX IF NOT EXISTS idx_events_label ON events(label);
@@ -43,7 +49,10 @@ CREATE TABLE IF NOT EXISTS events (
   title VARCHAR(255) NOT NULL,
   description TEXT,
   image_url TEXT,
-  event_url TEXT,
+  source_url TEXT,
+  attribution_text TEXT,
+  is_published BOOLEAN NOT NULL DEFAULT false,
+  license_type VARCHAR(80),
   
   -- Date type: 'date' for precise calendar dates, 'astronomical' for years ago
   date_type VARCHAR(20) DEFAULT 'date' CHECK (date_type IN ('date', 'astronomical')),
@@ -102,6 +111,7 @@ CREATE INDEX idx_events_date_type ON events(date_type);
 CREATE INDEX idx_events_astronomical_start ON events(astronomical_start_year);
 CREATE INDEX idx_events_created_at ON events(created_at);
 CREATE INDEX idx_events_label ON events(label);
+CREATE INDEX idx_events_is_published ON events(is_published);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;

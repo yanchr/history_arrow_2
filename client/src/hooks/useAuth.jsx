@@ -1,17 +1,41 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../utils/supabase'
+import { withTimeout } from '../utils/asyncTimeout'
 
 const AuthContext = createContext({})
+
+const REQUEST_TIMEOUT_MS = 15000
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
+    const resolveAdminStatus = async (sessionUser) => {
+      if (!sessionUser) {
+        setIsAdmin(false)
+        return
+      }
+
+      const { data, error } = await withTimeout(
+        supabase.rpc('is_admin'),
+        REQUEST_TIMEOUT_MS,
+        'Admin check timed out.'
+      )
+      if (error) {
+        setIsAdmin(false)
+        return
+      }
+
+      setIsAdmin(Boolean(data))
+    }
+
     // Check active session
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       setUser(session?.user ?? null)
+      await resolveAdminStatus(session?.user ?? null)
       setLoading(false)
     }
 
@@ -21,6 +45,7 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setUser(session?.user ?? null)
+        await resolveAdminStatus(session?.user ?? null)
         setLoading(false)
       }
     )
@@ -44,6 +69,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
+    isAdmin,
     loading,
     signIn,
     signOut,

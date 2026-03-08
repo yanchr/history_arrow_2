@@ -122,6 +122,34 @@
   color: var(--color-text-secondary);
 }
 
+.admin-filter-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.admin-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-filter-item span {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.admin-filter-select {
+  padding: 0.55rem 0.65rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+}
+
 /* Stats */
 .admin-stats {
   display: grid;
@@ -288,6 +316,41 @@
 .type-badge.historical {
   background: rgba(16, 185, 129, 0.2);
   color: var(--color-success, #10b981);
+}
+
+.admin-status-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.status-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.status-badge.published {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+}
+
+.status-badge.unpublished {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.status-badge.checked {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+
+.status-badge.unchecked {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
 }
 
 /* Label Badge */
@@ -598,6 +661,10 @@
   .events-table td {
     padding: 0.75rem 1rem;
     white-space: nowrap;
+  }
+
+  .admin-filter-row {
+    grid-template-columns: 1fr;
   }
 
   .form-overlay {

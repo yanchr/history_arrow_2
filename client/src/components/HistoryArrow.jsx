@@ -129,7 +129,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   gameReveal = null
 }, ref) {
   const [hoveredEvent, setHoveredEvent] = useState(null)
-  const [timelineHover, setTimelineHover] = useState({ active: false, x: 0, yearsAgo: 0 })
+  const [timelineHover, setTimelineHover] = useState({ active: false, x: 0, percentage: 0, yearsAgo: 0 })
   const [isIphoneViewport, setIsIphoneViewport] = useState(false)
   const [eventsLayerWidth, setEventsLayerWidth] = useState(1000)
   const [centerInputType, setCenterInputType] = useState('date')
@@ -423,9 +423,16 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     const baseHeight = isIphoneViewport ? MOBILE_TIMELINE_BASE_HEIGHT : DESKTOP_TIMELINE_BASE_HEIGHT
     const spanLaneGap = isIphoneViewport ? MOBILE_SPAN_LANE_GAP : DESKTOP_SPAN_LANE_GAP
     const pointLaneGap = isIphoneViewport ? MOBILE_POINT_LANE_GAP : DESKTOP_POINT_LANE_GAP
+    const maxSpanLanesPerSide = Math.ceil(
+      (isIphoneViewport ? IPHONE_MAX_SPAN_LANES : DESKTOP_MAX_SPAN_LANES) / 2
+    )
+    const maxPointLanesPerSide = Math.ceil(
+      (isIphoneViewport ? IPHONE_MAX_POINT_LANES : DESKTOP_MAX_POINT_LANES) / 2
+    )
+    // Keep wrapper height stable regardless of how many events are visible.
     const laneDepthPx = Math.max(
-      spanLaneLayout.lanesPerSide * spanLaneGap,
-      pointLaneLayout.lanesPerSide * pointLaneGap
+      maxSpanLanesPerSide * spanLaneGap,
+      maxPointLanesPerSide * pointLaneGap
     )
 
     return {
@@ -440,9 +447,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     }
   }, [
     isIphoneViewport,
-    spanLaneLayout.lanesPerSide,
     spanLaneLayout.effectiveLaneCount,
-    pointLaneLayout.lanesPerSide,
     pointLaneLayout.effectiveLaneCount
   ])
 
@@ -567,10 +572,20 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     setTimelineHover({
       active: true,
       x: e.clientX - rect.left + 60, // Offset for the events layer margin
+      percentage,
       yearsAgo
     })
     onGameGuessMove?.({ percentage, yearsAgo })
   }, [viewStart, viewEnd, onGameGuessMove])
+
+  // Keep hover readout in sync when view changes (including keyboard pan/zoom).
+  useEffect(() => {
+    if (!timelineHover.active) return
+
+    const yearsAgo = linearPositionToYear(timelineHover.percentage, viewStart, viewEnd)
+    setTimelineHover(prev => ({ ...prev, yearsAgo }))
+    onGameGuessMove?.({ percentage: timelineHover.percentage, yearsAgo })
+  }, [timelineHover.active, timelineHover.percentage, viewStart, viewEnd, onGameGuessMove])
 
   const handleTimelineMouseLeave = useCallback(() => {
     setTimelineHover(prev => ({ ...prev, active: false }))

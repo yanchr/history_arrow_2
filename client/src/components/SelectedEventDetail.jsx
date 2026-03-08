@@ -1,9 +1,122 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { formatEventDate } from '../utils/dateUtils'
+import { canViewEventContent, getRestrictedContentMessage } from '../utils/contentVisibility'
 import './SelectedEventDetail.css'
 
-function SelectedEventDetail({ event, onClose, onEdit }) {
+const MARKDOWN_LINK_REGEX = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
+const URL_REGEX = /(https?:\/\/[^\s]+)/g
+const HTML_LINK_REGEX = /<a\s+[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi
+
+function decodeHtmlEntities(value) {
+  if (!value) return ''
+  return value
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\u00a0/g, ' ')
+}
+
+function normalizeAttributionUrl(url) {
+  if (!url) return null
+  const trimmed = url.trim()
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  if (trimmed.startsWith('//')) return `https:${trimmed}`
+  if (trimmed.startsWith('/')) return `https://commons.wikimedia.org${trimmed}`
+  return null
+}
+
+function getSourceLabel(url) {
+  if (!url) return 'Source link'
+  if (url.includes('commons.wikimedia.org')) return 'Wikimedia Commons'
+
+  try {
+    const host = new URL(url).hostname.replace(/^www\./i, '')
+    return host || 'Source link'
+  } catch {
+    return 'Source link'
+  }
+}
+
+function normalizeAttributionInput(rawText) {
+  const withMarkdownLinks = rawText.replace(HTML_LINK_REGEX, (_match, href, label) => {
+    const normalizedUrl = normalizeAttributionUrl(decodeHtmlEntities(href))
+    const cleanLabel = decodeHtmlEntities(label.replace(/<[^>]+>/g, '')).trim()
+    if (!normalizedUrl) return cleanLabel
+    return `[${cleanLabel}](${normalizedUrl})`
+  })
+
+  const withoutHtmlTags = withMarkdownLinks.replace(/<[^>]+>/g, ' ')
+  return decodeHtmlEntities(withoutHtmlTags).replace(/\s+/g, ' ').trim()
+}
+
+function renderAttributionText(text) {
+  const normalizedText = normalizeAttributionInput(text)
+  const blocks = []
+  let lastIndex = 0
+  let match
+  MARKDOWN_LINK_REGEX.lastIndex = 0
+
+  while ((match = MARKDOWN_LINK_REGEX.exec(normalizedText)) !== null) {
+    if (match.index > lastIndex) {
+      blocks.push({ type: 'text', value: normalizedText.slice(lastIndex, match.index) })
+    }
+    blocks.push({ type: 'link', label: match[1], url: match[2] })
+    lastIndex = MARKDOWN_LINK_REGEX.lastIndex
+  }
+
+  if (lastIndex < normalizedText.length) {
+    blocks.push({ type: 'text', value: normalizedText.slice(lastIndex) })
+  }
+
+  const normalized = blocks.length > 0 ? blocks : [{ type: 'text', value: normalizedText }]
+  const output = []
+  let key = 0
+
+  normalized.forEach((block) => {
+    if (block.type === 'link') {
+      output.push(
+        <a
+          key={`link-${key++}`}
+          href={block.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="selected-event-attribution-link"
+        >
+          {block.label}
+        </a>
+      )
+      return
+    }
+
+    const textParts = block.value.split(URL_REGEX)
+    textParts.forEach((part) => {
+      if (!part) return
+      if (/^https?:\/\//i.test(part)) {
+        output.push(
+          <a
+            key={`url-${key++}`}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="selected-event-attribution-link"
+          >
+            {part}
+          </a>
+        )
+      } else {
+        output.push(<span key={`text-${key++}`}>{part}</span>)
+      }
+    })
+  })
+
+  return output
+}
+
+function SelectedEventDetail({ event, onClose, onEdit, isAdmin = false }) {
   const [isImageZoomed, setIsImageZoomed] = useState(false)
 
   useEffect(() => {
@@ -25,7 +138,16 @@ function SelectedEventDetail({ event, onClose, onEdit }) {
 
   if (!event) return null
 
-  const { title, description, image_url, event_url, date_type } = event
+  const {
+    title,
+    description,
+    image_url,
+    source_url,
+    attribution_text,
+    license_type,
+    is_published,
+    date_type
+  } = event
 
   // Get formatted dates based on event type
   const startDateDisplay = formatEventDate(event, false)
@@ -38,9 +160,12 @@ function SelectedEventDetail({ event, onClose, onEdit }) {
 
   // Get event type label
   const eventTypeLabel = date_type === 'astronomical' ? 'Astronomical' : 'Historical'
-  const eventUrlHref = event_url
-    ? (/^https?:\/\//i.test(event_url) ? event_url : `https://${event_url}`)
+  const canViewProtectedContent = canViewEventContent(event, isAdmin)
+  const rawSourceUrl = source_url || event.event_url
+  const sourceUrlHref = rawSourceUrl
+    ? (/^https?:\/\//i.test(rawSourceUrl) ? rawSourceUrl : `https://${rawSourceUrl}`)
     : null
+  const sourceLabel = getSourceLabel(sourceUrlHref)
 
   return (
     <motion.div
@@ -59,6 +184,9 @@ function SelectedEventDetail({ event, onClose, onEdit }) {
             <span className={`event-badge ${isSpan ? 'span' : 'point'}`}>
               {isSpan ? 'Time Span' : 'Point Event'}
             </span>
+            {isAdmin && !is_published && (
+              <span className="event-badge unpublished">Unpublished (admin-visible only)</span>
+            )}
           </div>
           <div className="selected-event-actions">
             {onEdit && (
@@ -79,7 +207,7 @@ function SelectedEventDetail({ event, onClose, onEdit }) {
 
         <h2 className="selected-event-title">{title}</h2>
 
-        {image_url && (
+        {canViewProtectedContent && image_url && (
           <div className="selected-event-image-wrapper">
             <img
               src={image_url}
@@ -111,19 +239,52 @@ function SelectedEventDetail({ event, onClose, onEdit }) {
           )}
         </div>
 
-        {description && (
+        {!canViewProtectedContent && (
+          <p className="selected-event-note">{getRestrictedContentMessage()}</p>
+        )}
+
+        {canViewProtectedContent && description && (
           <p className="selected-event-description">{description}</p>
         )}
 
-        {eventUrlHref && (
+        {canViewProtectedContent && sourceUrlHref && (
           <a
             className="selected-event-link"
-            href={eventUrlHref}
+            href={sourceUrlHref}
             target="_blank"
             rel="noopener noreferrer"
           >
-            Open source link
+            Read more
           </a>
+        )}
+
+        {canViewProtectedContent && image_url && attribution_text && (
+          <div className="selected-event-attribution">
+            <p className="selected-event-attribution-row">
+              <span className="selected-event-attribution-title">Image credit:</span>{' '}
+              {renderAttributionText(attribution_text)}
+            </p>
+            {sourceUrlHref && (
+              <p className="selected-event-attribution-row">
+                <span className="selected-event-attribution-title">Source:</span>{' '}
+                <a
+                  className="selected-event-attribution-link"
+                  href={sourceUrlHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {sourceLabel}
+                </a>
+                .
+              </p>
+            )}
+            {license_type && (
+              <p className="selected-event-attribution-row">
+                <span className="selected-event-attribution-title">License:</span>{' '}
+                <span>{license_type}</span>.
+              </p>
+            )}
+          </div>
         )}
       </div>
 
@@ -133,7 +294,7 @@ function SelectedEventDetail({ event, onClose, onEdit }) {
       </div>
 
       <AnimatePresence>
-        {isImageZoomed && image_url && (
+        {isImageZoomed && canViewProtectedContent && image_url && (
           <motion.div
             className="selected-event-image-overlay"
             initial={{ opacity: 0 }}

@@ -40,7 +40,7 @@ export function useSeo({
   title,
   description,
   path = '/',
-  robots = 'noindex, nofollow'
+  robots = 'index, follow'
 }) {
   useEffect(() => {
     const canonicalUrl = `${SITE_URL}${path}`

@@ -351,6 +351,11 @@
   color: var(--color-success, #10b981);
 }
 
+.event-type-badge.unpublished {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
 .event-card h3 {
   font-size: 1.2rem;
   color: var(--color-text);
@@ -364,8 +369,21 @@
   margin-bottom: 1rem;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.event-description--restricted {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px dashed rgba(245, 158, 11, 0.35);
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  line-clamp: unset;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: initial;
+  display: block;
 }
 
 .event-dates {

@@ -57,6 +57,8 @@ function Admin() {
   const [actionSuccess, setActionSuccess] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortOrder, setSortOrder] = useState('desc')
+  const [publicationFilter, setPublicationFilter] = useState('all')
+  const [cleanupFilter, setCleanupFilter] = useState('all')
   const [showLabelForm, setShowLabelForm] = useState(false)
   const [newLabelName, setNewLabelName] = useState('')
   const [newLabelColor, setNewLabelColor] = useState('#6b7280')
@@ -65,14 +67,33 @@ function Admin() {
   const [editLabelName, setEditLabelName] = useState('')
   const [editLabelColor, setEditLabelColor] = useState('')
 
-  // Filter events based on search query
+  const hasText = (value) => typeof value === 'string' && value.trim().length > 0
+
+  // Filter events based on search and content workflow filters
   const filteredEvents = events.filter(event => {
-    if (!searchQuery.trim()) return true
-    const query = searchQuery.toLowerCase()
-    return (
+    const query = searchQuery.trim().toLowerCase()
+    const matchesSearch = !query || (
       event.title?.toLowerCase().includes(query) ||
       event.description?.toLowerCase().includes(query)
     )
+
+    const matchesPublication = publicationFilter === 'all'
+      ? true
+      : publicationFilter === 'published'
+        ? Boolean(event.is_published)
+        : !event.is_published
+
+    const matchesCleanup = cleanupFilter === 'all'
+      ? true
+      : cleanupFilter === 'missingAttribution'
+        ? !hasText(event.attribution_text)
+        : cleanupFilter === 'missingSource'
+          ? !hasText(event.source_url)
+          : cleanupFilter === 'missingLicense'
+            ? !hasText(event.license_type)
+            : true
+
+    return matchesSearch && matchesPublication && matchesCleanup
   })
 
   // Sort filtered events by start date
@@ -240,6 +261,33 @@ function Admin() {
             {filteredEvents.length} {filteredEvents.length === 1 ? 'result' : 'results'} found
           </span>
         )}
+        <div className="admin-filter-row">
+          <label className="admin-filter-item">
+            <span>Publication</span>
+            <select
+              className="admin-filter-select"
+              value={publicationFilter}
+              onChange={(e) => setPublicationFilter(e.target.value)}
+            >
+              <option value="all">All</option>
+              <option value="published">Published</option>
+              <option value="unpublished">Unpublished</option>
+            </select>
+          </label>
+          <label className="admin-filter-item">
+            <span>Needs cleanup</span>
+            <select
+              className="admin-filter-select"
+              value={cleanupFilter}
+              onChange={(e) => setCleanupFilter(e.target.value)}
+            >
+              <option value="all">All</option>
+              <option value="missingAttribution">Missing attribution</option>
+              <option value="missingSource">Missing source URL</option>
+              <option value="missingLicense">Missing license</option>
+            </select>
+          </label>
+        </div>
       </motion.div>
 
       <div className="admin-stats">
@@ -485,6 +533,7 @@ function Admin() {
                 <th>Label</th>
                 <th>Date Type</th>
                 <th>Event Type</th>
+                <th>Status</th>
                 <th className="sortable-header" onClick={toggleSortOrder}>
                   <span className="header-content">
                     Start
@@ -548,6 +597,13 @@ function Admin() {
                       <span className={`type-badge ${eventIsSpan ? 'span' : 'point'}`}>
                         {eventIsSpan ? 'Span' : 'Point'}
                       </span>
+                    </td>
+                    <td>
+                      <div className="admin-status-badges">
+                        <span className={`status-badge ${event.is_published ? 'published' : 'unpublished'}`}>
+                          {event.is_published ? 'Published' : 'Unpublished'}
+                        </span>
+                      </div>
                     </td>
                     <td className="date-cell">{startDateDisplay || '—'}</td>
                     <td className="date-cell">{endDateDisplay || '—'}</td>

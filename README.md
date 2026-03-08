@@ -1,6 +1,6 @@
 # History Arrow - Interactive Chronological Explorer
 
-https://history-arrow-2.yanick-christen.com/
+https://history-arrow.yanick-christen.com/
 
 A full-stack web application for visualizing historical events along a dynamic timeline. Users can explore point events (specific dates) and time spans (ranges) through an intuitive hover-based interface.
 

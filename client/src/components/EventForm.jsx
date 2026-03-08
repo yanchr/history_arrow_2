@@ -9,9 +9,11 @@ import {
   ASTRONOMICAL_UNITS
 } from '../utils/dateUtils'
 import { supabase } from '../utils/supabase'
+import { withTimeout } from '../utils/asyncTimeout'
 import './EventForm.css'
 
 const STORAGE_BUCKET = 'event-images'
+const REQUEST_TIMEOUT_MS = 15000
 
 function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
   // Form state
@@ -19,7 +21,10 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
     title: '',
     description: '',
     image_url: '',
-    event_url: '',
+    source_url: '',
+    attribution_text: '',
+    is_published: false,
+    license_type: '',
     date_type: 'date',
     start_date: '',
     end_date: '',
@@ -51,7 +56,10 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
           title: event.title || '',
           description: event.description || '',
           image_url: event.image_url || '',
-          event_url: event.event_url || '',
+          source_url: event.source_url || event.event_url || '',
+          attribution_text: event.attribution_text || '',
+          is_published: Boolean(event.is_published),
+          license_type: event.license_type || '',
           date_type: 'astronomical',
           start_date: '',
           end_date: '',
@@ -67,7 +75,10 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
           title: event.title || '',
           description: event.description || '',
           image_url: event.image_url || '',
-          event_url: event.event_url || '',
+          source_url: event.source_url || event.event_url || '',
+          attribution_text: event.attribution_text || '',
+          is_published: Boolean(event.is_published),
+          license_type: event.license_type || '',
           date_type: 'date',
           start_date: event.start_date ? event.start_date.split('T')[0] : '',
           end_date: event.end_date ? event.end_date.split('T')[0] : '',
@@ -98,8 +109,8 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
   }, [formData, isSpan])
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    const { name, value, type, checked } = e.target
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
     
     // Clear validation error for this field
     if (validationErrors[name]) {
@@ -146,10 +157,14 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
       }
       const ext = file.name.split('.').pop() || 'jpg'
       const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-      const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, {
-        cacheControl: '3600',
-        upsert: false
-      })
+      const { error } = await withTimeout(
+        supabase.storage.from(STORAGE_BUCKET).upload(path, file, {
+          cacheControl: '3600',
+          upsert: false
+        }),
+        REQUEST_TIMEOUT_MS,
+        'Upload timed out. Check local network or Supabase status and try again.'
+      )
       if (error) throw error
       const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path)
       setFormData(prev => ({ ...prev, image_url: data.publicUrl }))
@@ -235,7 +250,10 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         title: formData.title,
         description: formData.description,
         image_url: formData.image_url?.trim() || null,
-        event_url: formData.event_url?.trim() || null,
+        source_url: formData.source_url?.trim() || null,
+        attribution_text: formData.attribution_text?.trim() || null,
+        is_published: Boolean(formData.is_published),
+        license_type: formData.license_type?.trim() || null,
         date_type: 'date',
         start_date: formData.start_date,
         end_date: isSpan ? formData.end_date : null,
@@ -253,7 +271,10 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         title: formData.title,
         description: formData.description,
         image_url: formData.image_url?.trim() || null,
-        event_url: formData.event_url?.trim() || null,
+        source_url: formData.source_url?.trim() || null,
+        attribution_text: formData.attribution_text?.trim() || null,
+        is_published: Boolean(formData.is_published),
+        license_type: formData.license_type?.trim() || null,
         date_type: 'astronomical',
         start_date: null,
         end_date: null,
@@ -539,18 +560,18 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         </AnimatePresence>
 
         <div className="form-group">
-          <label htmlFor="event_url" className="form-label">External Link</label>
+          <label htmlFor="source_url" className="form-label">Source URL</label>
           <input
-            id="event_url"
-            name="event_url"
+            id="source_url"
+            name="source_url"
             type="url"
             className="form-input"
-            value={formData.event_url}
+            value={formData.source_url}
             onChange={handleChange}
-            placeholder="https://example.com"
+            placeholder="https://example.com/source-article"
             disabled={submitting}
           />
-          <p className="form-hint">Optional source or reference link for this event.</p>
+          <p className="form-hint">Optional citation or reference link for this event.</p>
         </div>
 
         {/* Picture */}
@@ -629,6 +650,52 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
             rows={4}
             disabled={submitting}
           />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="attribution_text" className="form-label">Attribution Text</label>
+          <textarea
+            id="attribution_text"
+            name="attribution_text"
+            className="form-textarea"
+            value={formData.attribution_text}
+            onChange={handleChange}
+            placeholder="Photo by Author Name (CC BY 4.0) via Example Source"
+            rows={2}
+            disabled={submitting}
+          />
+          <p className="form-hint">Shown publicly as a source/credit line when available.</p>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="license_type" className="form-label">License Type</label>
+          <input
+            id="license_type"
+            name="license_type"
+            type="text"
+            className="form-input"
+            value={formData.license_type}
+            onChange={handleChange}
+            placeholder="e.g., CC BY 4.0, Public Domain, Proprietary"
+            disabled={submitting}
+          />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Publishing</label>
+          <div className="rights-toggle-group">
+            <label className="toggle-label">
+              <input
+                type="checkbox"
+                name="is_published"
+                checked={formData.is_published}
+                onChange={handleChange}
+                disabled={submitting}
+              />
+              <span className="toggle-switch" />
+              <span className="toggle-text">Published (visible to public)</span>
+            </label>
+          </div>
         </div>
 
         <div className="form-actions">

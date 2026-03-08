@@ -18,6 +18,10 @@ let mockEvents = [
     astronomical_end_year: null,
     label: 'nature',
     image_url: null,
+    source_url: null,
+    attribution_text: null,
+    is_published: false,
+    license_type: null,
     created_at: new Date().toISOString()
   },
   {
@@ -31,6 +35,10 @@ let mockEvents = [
     astronomical_end_year: 4000000000,
     label: 'nature',
     image_url: null,
+    source_url: null,
+    attribution_text: null,
+    is_published: false,
+    license_type: null,
     created_at: new Date().toISOString()
   },
   {
@@ -44,6 +52,10 @@ let mockEvents = [
     astronomical_end_year: 485000000,
     label: 'nature',
     image_url: null,
+    source_url: null,
+    attribution_text: null,
+    is_published: false,
+    license_type: null,
     created_at: new Date().toISOString()
   },
   {
@@ -57,6 +69,10 @@ let mockEvents = [
     astronomical_end_year: null,
     label: 'nature',
     image_url: null,
+    source_url: null,
+    attribution_text: null,
+    is_published: false,
+    license_type: null,
     created_at: new Date().toISOString()
   },
   {
@@ -70,6 +86,10 @@ let mockEvents = [
     astronomical_end_year: null,
     label: 'discovery',
     image_url: null,
+    source_url: null,
+    attribution_text: null,
+    is_published: false,
+    license_type: null,
     created_at: new Date().toISOString()
   },
   {
@@ -83,6 +103,10 @@ let mockEvents = [
     astronomical_end_year: null,
     label: 'war',
     image_url: null,
+    source_url: null,
+    attribution_text: null,
+    is_published: false,
+    license_type: null,
     created_at: new Date().toISOString()
   },
   {
@@ -96,6 +120,10 @@ let mockEvents = [
     astronomical_end_year: null,
     label: 'discovery',
     image_url: null,
+    source_url: null,
+    attribution_text: null,
+    is_published: false,
+    license_type: null,
     created_at: new Date().toISOString()
   }
 ]
@@ -204,7 +232,10 @@ router.post('/', requireAuth, async (req, res, next) => {
       title, 
       description, 
       image_url,
-      event_url,
+      source_url,
+      attribution_text,
+      is_published = false,
+      license_type,
       date_type = 'date',
       start_date, 
       end_date,
@@ -222,7 +253,10 @@ router.post('/', requireAuth, async (req, res, next) => {
       title: title.trim(),
       description: description?.trim() || null,
       image_url: image_url?.trim() || null,
-      event_url: event_url?.trim() || null,
+      source_url: source_url?.trim() || null,
+      attribution_text: attribution_text?.trim() || null,
+      is_published: Boolean(is_published),
+      license_type: license_type?.trim() || null,
       date_type,
       start_date: date_type === 'date' ? start_date : null,
       end_date: date_type === 'date' ? (end_date || null) : null,
@@ -262,7 +296,10 @@ router.put('/:id', requireAuth, async (req, res, next) => {
       title, 
       description, 
       image_url,
-      event_url,
+      source_url,
+      attribution_text,
+      is_published = false,
+      license_type,
       date_type = 'date',
       start_date, 
       end_date,
@@ -280,7 +317,10 @@ router.put('/:id', requireAuth, async (req, res, next) => {
       title: title.trim(),
       description: description?.trim() || null,
       image_url: image_url?.trim() || null,
-      event_url: event_url?.trim() || null,
+      source_url: source_url?.trim() || null,
+      attribution_text: attribution_text?.trim() || null,
+      is_published: Boolean(is_published),
+      license_type: license_type?.trim() || null,
       date_type,
       start_date: date_type === 'date' ? start_date : null,
       end_date: date_type === 'date' ? (end_date || null) : null,

@@ -1,2 +1,4 @@
 User-agent: *
-Disallow: /
+Allow: /
+
+Sitemap: https://history-arrow.yanick-christen.com/sitemap.xml

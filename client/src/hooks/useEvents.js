@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../utils/supabase'
+import { withTimeout } from '../utils/asyncTimeout'
+
+const REQUEST_TIMEOUT_MS = 15000
 
 function toReadableError(error, fallbackMessage) {
   if (!error) return fallbackMessage
@@ -16,10 +19,14 @@ export function useEvents() {
     try {
       setLoading(true)
       setError(null)
-      const { data, error: fetchError } = await supabase
-        .from('events')
-        .select('*')
-        .order('created_at', { ascending: true })
+      const { data, error: fetchError } = await withTimeout(
+        supabase
+          .from('events')
+          .select('*')
+          .order('created_at', { ascending: true }),
+        REQUEST_TIMEOUT_MS,
+        'Request timed out while fetching events. Check local network or Supabase status.'
+      )
       if (fetchError) throw fetchError
       setEvents(data)
     } catch (err) {
@@ -34,11 +41,15 @@ export function useEvents() {
   }, [fetchEvents])
 
   const createEvent = async (eventData) => {
-    const { data: newEvent, error: createError } = await supabase
-      .from('events')
-      .insert([eventData])
-      .select()
-      .single()
+    const { data: newEvent, error: createError } = await withTimeout(
+      supabase
+        .from('events')
+        .insert([eventData])
+        .select()
+        .single(),
+      REQUEST_TIMEOUT_MS,
+      'Request timed out while creating event. Check local network or Supabase status.'
+    )
     if (createError) {
       throw new Error(toReadableError(createError, 'Failed to create event'))
     }
@@ -47,12 +58,16 @@ export function useEvents() {
   }
 
   const updateEvent = async (id, eventData) => {
-    const { data: updatedEvent, error: updateError } = await supabase
-      .from('events')
-      .update(eventData)
-      .eq('id', id)
-      .select()
-      .single()
+    const { data: updatedEvent, error: updateError } = await withTimeout(
+      supabase
+        .from('events')
+        .update(eventData)
+        .eq('id', id)
+        .select()
+        .single(),
+      REQUEST_TIMEOUT_MS,
+      'Request timed out while updating event. Check local network or Supabase status.'
+    )
     if (updateError) {
       throw new Error(toReadableError(updateError, 'Failed to update event'))
     }
@@ -61,10 +76,14 @@ export function useEvents() {
   }
 
   const deleteEvent = async (id) => {
-    const { error: deleteError } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', id)
+    const { error: deleteError } = await withTimeout(
+      supabase
+        .from('events')
+        .delete()
+        .eq('id', id),
+      REQUEST_TIMEOUT_MS,
+      'Request timed out while deleting event. Check local network or Supabase status.'
+    )
     if (deleteError) {
       throw new Error(toReadableError(deleteError, 'Failed to delete event'))
     }

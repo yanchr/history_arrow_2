@@ -8,6 +8,7 @@ import { useLabels } from '../hooks/useLabels'
 import { useSeo } from '../hooks/useSeo'
 import EventForm from '../components/EventForm'
 import { formatEventDate } from '../utils/dateUtils'
+import { canViewEventContent, getRestrictedContentMessage } from '../utils/contentVisibility'
 import { sampleEvents } from '../data/sampleEvents'
 import './Home.css'
 
@@ -27,7 +28,7 @@ function Home() {
   })
 
   const { events, loading, error, updateEvent } = useEvents()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isAdmin } = useAuth()
   const { labels, labelColorMap } = useLabels()
   const [displayEvents, setDisplayEvents] = useState([])
   const [selectedEvent, setSelectedEvent] = useState(null)
@@ -123,9 +124,9 @@ function Home() {
     const query = searchQuery.toLowerCase()
     return base.filter(event =>
       event.title.toLowerCase().includes(query) ||
-      (event.description && event.description.toLowerCase().includes(query))
+      (canViewEventContent(event, isAdmin) && event.description && event.description.toLowerCase().includes(query))
     )
-  }, [filteredEvents, searchQuery])
+  }, [filteredEvents, searchQuery, isAdmin])
 
   return (
     <div className="home-page">
@@ -217,7 +218,8 @@ function Home() {
             <SelectedEventDetail 
               event={selectedEvent} 
               onClose={handleCloseSelectedEvent}
-              onEdit={isAuthenticated ? handleEditEvent : undefined}
+              onEdit={isAuthenticated && isAdmin ? handleEditEvent : undefined}
+              isAdmin={isAdmin}
             />
           </motion.section>
         )}
@@ -301,6 +303,9 @@ function Home() {
                     <span className={`event-type-badge ${eventIsSpan ? 'span' : 'point'}`}>
                       {eventIsSpan ? 'Span' : 'Point'}
                     </span>
+                    {isAdmin && !event.is_published && (
+                      <span className="event-type-badge unpublished">Unpublished</span>
+                    )}
                     {event.label && (() => {
                       const color = labelColorMap.get(event.label)
                       return color ? (
@@ -317,7 +322,14 @@ function Home() {
                   </div>
                   <h3>{event.title}</h3>
                 </div>
-                <p className="event-description">{event.description}</p>
+                {!canViewEventContent(event, isAdmin) && (
+                  <p className="event-description event-description--restricted">
+                    {getRestrictedContentMessage()}
+                  </p>
+                )}
+                {canViewEventContent(event, isAdmin) && (
+                  <p className="event-description">{event.description}</p>
+                )}
                 <div className="event-dates">
                   <span>{startDateDisplay}</span>
                   {eventIsSpan && endDateDisplay && (

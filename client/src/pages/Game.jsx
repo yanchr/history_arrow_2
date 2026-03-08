@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import HistoryArrow from '../components/HistoryArrow'
 import SelectedEventDetail from '../components/SelectedEventDetail'
 import { useEvents } from '../hooks/useEvents'
+import { useAuth } from '../hooks/useAuth'
 import { useLabels } from '../hooks/useLabels'
 import { useSeo } from '../hooks/useSeo'
 import { sampleEvents } from '../data/sampleEvents'
 import { formatEventDate } from '../utils/dateUtils'
 import { eventToYearsAgo, eventEndToYearsAgo, formatYearsAgoShort } from '../utils/logScaleUtils'
+import { canViewEventContent, getRestrictedContentMessage } from '../utils/contentVisibility'
 import './Home.css'
 import './Game.css'
 
@@ -37,6 +39,7 @@ function Game() {
   })
 
   const { events, loading, error } = useEvents()
+  const { isAdmin } = useAuth()
   const { labels, labelColorMap } = useLabels()
   const timelineRef = useRef(null)
 
@@ -113,9 +116,13 @@ function Game() {
     if (!searchQuery.trim()) return base
     const query = searchQuery.toLowerCase()
     return base.filter((event) => {
-      return event.title.toLowerCase().includes(query) || (event.description && event.description.toLowerCase().includes(query))
+      return event.title.toLowerCase().includes(query) || (
+        canViewEventContent(event, isAdmin) &&
+        event.description &&
+        event.description.toLowerCase().includes(query)
+      )
     })
-  }, [timelineEvents, searchQuery])
+  }, [timelineEvents, searchQuery, isAdmin])
 
   const toggleLabel = useCallback((label) => {
     setActiveLabels((prev) => (prev.includes(label) ? prev.filter((value) => value !== label) : [...prev, label]))
@@ -513,6 +520,7 @@ function Game() {
             <SelectedEventDetail
               event={selectedEvent}
               onClose={() => setSelectedEvent(null)}
+              isAdmin={isAdmin}
             />
           </motion.section>
         )}
@@ -568,6 +576,9 @@ function Game() {
                     <span className={`event-type-badge ${eventIsSpan ? 'span' : 'point'}`}>
                       {eventIsSpan ? 'Span' : 'Point'}
                     </span>
+                    {isAdmin && !event.is_published && (
+                      <span className="event-type-badge unpublished">Unpublished</span>
+                    )}
                     {event.label && (() => {
                       const color = labelColorMap.get(event.label)
                       return color ? (
@@ -581,7 +592,14 @@ function Game() {
                   </div>
                   <h3>{event.title}</h3>
                 </div>
-                <p className="event-description">{event.description}</p>
+                {!canViewEventContent(event, isAdmin) && (
+                  <p className="event-description event-description--restricted">
+                    {getRestrictedContentMessage()}
+                  </p>
+                )}
+                {canViewEventContent(event, isAdmin) && (
+                  <p className="event-description">{event.description}</p>
+                )}
                 <div className="event-dates">
                   <span>{startDateDisplay}</span>
                   {eventIsSpan && endDateDisplay && (
