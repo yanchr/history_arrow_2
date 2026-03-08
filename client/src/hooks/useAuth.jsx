@@ -9,7 +9,10 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
+    let isMounted = true
+
     const resolveAdminStatus = async (sessionUser) => {
+      if (!isMounted) return
       if (!sessionUser) {
         setIsAdmin(false)
         return
@@ -17,6 +20,7 @@ export function AuthProvider({ children }) {
 
       try {
         const { data, error } = await supabase.rpc('is_admin')
+        if (!isMounted) return
         if (error) {
           setIsAdmin(false)
           return
@@ -24,6 +28,7 @@ export function AuthProvider({ children }) {
 
         setIsAdmin(Boolean(data))
       } catch {
+        if (!isMounted) return
         setIsAdmin(false)
       }
     }
@@ -31,23 +36,30 @@ export function AuthProvider({ children }) {
     // Check active session
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
+      if (!isMounted) return
       setUser(session?.user ?? null)
-      await resolveAdminStatus(session?.user ?? null)
       setLoading(false)
+      // Run role lookup after releasing auth initialization path.
+      void resolveAdminStatus(session?.user ?? null)
     }
 
     getSession()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
+        if (!isMounted) return
         setUser(session?.user ?? null)
-        await resolveAdminStatus(session?.user ?? null)
         setLoading(false)
+        // Avoid awaiting Supabase calls inside auth callbacks to prevent lock contention.
+        void resolveAdminStatus(session?.user ?? null)
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email, password) => {
