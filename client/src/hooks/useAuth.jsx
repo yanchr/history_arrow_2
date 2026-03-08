@@ -1,10 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../utils/supabase'
-import { withTimeout } from '../utils/asyncTimeout'
 
 const AuthContext = createContext({})
-
-const REQUEST_TIMEOUT_MS = 15000
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -18,17 +15,17 @@ export function AuthProvider({ children }) {
         return
       }
 
-      const { data, error } = await withTimeout(
-        supabase.rpc('is_admin'),
-        REQUEST_TIMEOUT_MS,
-        'Admin check timed out.'
-      )
-      if (error) {
-        setIsAdmin(false)
-        return
-      }
+      try {
+        const { data, error } = await supabase.rpc('is_admin')
+        if (error) {
+          setIsAdmin(false)
+          return
+        }
 
-      setIsAdmin(Boolean(data))
+        setIsAdmin(Boolean(data))
+      } catch {
+        setIsAdmin(false)
+      }
     }
 
     // Check active session
