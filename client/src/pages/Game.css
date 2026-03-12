@@ -136,6 +136,12 @@
   font-size: 0.9rem;
 }
 
+.game-page.game-round-focus .label-filter-bar,
+.game-page.game-round-focus .events-list-section,
+.game-page.game-round-focus .selected-event-section {
+  display: none;
+}
+
 @media (max-width: 960px) {
   .multiplayer-panel {
     position: static;

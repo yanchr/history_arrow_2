@@ -31,6 +31,14 @@ const PLAYER_COLORS = [
   '#ec4899'
 ]
 
+const ROUND_PHASE = {
+  IDLE: 'idle',
+  GUESSING: 'guessing',
+  FINAL_REVEAL: 'final-reveal'
+}
+const EXCLUDED_GAME_LABEL = 'Eons'
+const LONG_SPAN_YEARS_THRESHOLD = 2000
+
 function Game() {
   useSeo({
     title: 'Timeline Guessing Game',
@@ -60,12 +68,16 @@ function Game() {
   const [roundPoints, setRoundPoints] = useState(0)
   const [totalPoints, setTotalPoints] = useState(0)
   const [roundGuesses, setRoundGuesses] = useState([])
+  const [roundPhase, setRoundPhase] = useState(ROUND_PHASE.IDLE)
   const [roundStartPlayerIndex, setRoundStartPlayerIndex] = useState(0)
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0)
   const [pointsPopup, setPointsPopup] = useState(null)
   const [gameError, setGameError] = useState('')
 
   const isMultiplayer = players.length > 0
+  const isGuessingPhase = roundPhase === ROUND_PHASE.GUESSING
+  const isFinalReveal = roundPhase === ROUND_PHASE.FINAL_REVEAL
+  const isRevealFocus = !!roundEvent && isFinalReveal
 
   useEffect(() => {
     if (events && events.length > 0) {
@@ -76,19 +88,25 @@ function Game() {
   }, [events, loading])
 
   const filteredEvents = useMemo(() => {
-    if (activeLabels.length === 0) return displayEvents
+    const gameBaseEvents = displayEvents.filter((event) => event.label !== EXCLUDED_GAME_LABEL)
+
+    if (activeLabels.length === 0) return gameBaseEvents
     if (filterMode === 'include') {
-      return displayEvents.filter((event) => {
+      return gameBaseEvents.filter((event) => {
         if (!event.label && activeLabels.includes('__none__')) return true
         return event.label && activeLabels.includes(event.label)
       })
     }
-    return displayEvents.filter((event) => {
+    return gameBaseEvents.filter((event) => {
       if (!event.label && activeLabels.includes('__none__')) return false
       if (event.label && activeLabels.includes(event.label)) return false
       return true
     })
   }, [displayEvents, activeLabels, filterMode])
+
+  const gameLabels = useMemo(() => {
+    return labels.filter((labelItem) => labelItem.name !== EXCLUDED_GAME_LABEL)
+  }, [labels])
 
   useEffect(() => {
     if (!players.length) {
@@ -101,15 +119,13 @@ function Game() {
     setRoundStartPlayerIndex((prev) => prev % players.length)
   }, [players.length])
 
-  const hiddenEventIds = useMemo(() => {
-    if (!roundEvent || isRevealed) return []
-    return [roundEvent.id]
-  }, [roundEvent, isRevealed])
-
   const timelineEvents = useMemo(() => {
-    if (!hiddenEventIds.length) return filteredEvents
-    return filteredEvents.filter((event) => !hiddenEventIds.includes(event.id))
-  }, [filteredEvents, hiddenEventIds])
+    if (isFinalReveal) return []
+    if (roundEvent && !isRevealed) {
+      return filteredEvents.filter((event) => event.id !== roundEvent.id)
+    }
+    return filteredEvents
+  }, [filteredEvents, isFinalReveal, roundEvent, isRevealed])
 
   const searchFilteredEvents = useMemo(() => {
     const base = timelineEvents
@@ -129,26 +145,37 @@ function Game() {
   }, [])
 
   const activePlayer = useMemo(() => {
-    if (!isMultiplayer || !roundEvent || isRevealed || players.length === 0) return null
+    if (!isMultiplayer || !roundEvent || isRevealed || !isGuessingPhase || players.length === 0) return null
     return players[currentPlayerIndex] || null
-  }, [isMultiplayer, roundEvent, isRevealed, players, currentPlayerIndex])
+  }, [isMultiplayer, roundEvent, isRevealed, isGuessingPhase, players, currentPlayerIndex])
 
   const totalPlayerPoints = useMemo(() => {
     return players.reduce((sum, player) => sum + player.score, 0)
   }, [players])
 
   const gameGuessMarkers = useMemo(() => {
-    if (!roundEvent) return []
+    if (!roundEvent || !isFinalReveal) return []
 
     return roundGuesses.map((guess, index) => ({
       id: `${guess.playerId}-${index}`,
       event: roundEvent,
+      displayTitle: isMultiplayer ? guess.playerName : 'You',
       yearsAgo: guess.yearsAgo,
       color: guess.color,
       overlayClass: 'game-overlay-guess',
       laneDirection: index % 2 === 0 ? 1 : -1
     }))
-  }, [roundGuesses, roundEvent])
+  }, [roundGuesses, roundEvent, isFinalReveal, isMultiplayer])
+
+  const gameActualMarker = useMemo(() => {
+    if (!roundEvent || !isFinalReveal) return null
+    return {
+      id: `actual-${roundEvent.id}`,
+      event: roundEvent,
+      displayTitle: roundEvent.title,
+      overlayClass: 'game-overlay-actual'
+    }
+  }, [roundEvent, isFinalReveal])
 
   const roundPointsByPlayer = useMemo(() => {
     const pointsMap = new Map()
@@ -200,8 +227,6 @@ function Game() {
   }, [playerNameInputs])
 
   const startRound = useCallback(() => {
-    timelineRef.current?.resetView?.()
-
     if (!filteredEvents.length) {
       setGameError('No events match the current filter.')
       return
@@ -219,20 +244,34 @@ function Game() {
     setYearsApart(null)
     setRoundPoints(0)
     setRoundGuesses([])
+    setRoundPhase(ROUND_PHASE.GUESSING)
     setSelectedEvent(null)
     if (players.length > 0) {
       setCurrentPlayerIndex(roundStartPlayerIndex % players.length)
     }
+
+    const roundStartYearsAgo = eventToYearsAgo(randomEvent)
+    const roundEndYearsAgo = eventEndToYearsAgo(randomEvent)
+    const roundDurationYears = (roundEndYearsAgo !== null && roundEndYearsAgo !== undefined)
+      ? Math.abs(roundStartYearsAgo - roundEndYearsAgo)
+      : 0
+
+    if (roundDurationYears > LONG_SPAN_YEARS_THRESHOLD) {
+      timelineRef.current?.centerOnEvent?.(randomEvent)
+    } else {
+      timelineRef.current?.resetView?.()
+    }
+
     setGameError('')
   }, [filteredEvents, players.length, roundStartPlayerIndex])
 
   const handleGuessMove = useCallback(({ yearsAgo }) => {
-    if (!roundEvent || isRevealed) return
+    if (!roundEvent || isRevealed || !isGuessingPhase) return
     setGuessYearsAgo(yearsAgo)
-  }, [roundEvent, isRevealed])
+  }, [roundEvent, isRevealed, isGuessingPhase])
 
   const handleGuessPlace = useCallback(({ yearsAgo }) => {
-    if (!roundEvent || isRevealed) return
+    if (!roundEvent || isRevealed || !isGuessingPhase) return
 
     const eventStart = eventToYearsAgo(roundEvent)
     const eventEnd = eventEndToYearsAgo(roundEvent)
@@ -257,6 +296,7 @@ function Game() {
       setTotalPoints((prev) => prev + earnedPoints)
       setPointsPopup({ points: earnedPoints, key: Date.now() })
       setIsRevealed(true)
+      setRoundPhase(ROUND_PHASE.FINAL_REVEAL)
       setSelectedEvent(roundEvent)
       timelineRef.current?.centerOnRevealGuesses?.(roundEvent, [yearsAgo])
       return
@@ -298,6 +338,7 @@ function Game() {
     setYearsApart(Number.isFinite(bestDistance) ? bestDistance : distance)
     setPointsPopup({ points: roundScoreTotal, key: Date.now() })
     setIsRevealed(true)
+    setRoundPhase(ROUND_PHASE.FINAL_REVEAL)
     setSelectedEvent(roundEvent)
     timelineRef.current?.centerOnRevealGuesses?.(
       roundEvent,
@@ -307,12 +348,25 @@ function Game() {
   }, [
     roundEvent,
     isRevealed,
+    isGuessingPhase,
     getPointsFromRelativeTimeError,
     isMultiplayer,
     players,
     currentPlayerIndex,
     roundGuesses
   ])
+
+  const handleTimelineBackgroundClick = useCallback(() => {
+    if (roundPhase !== ROUND_PHASE.FINAL_REVEAL) return
+    setRoundPhase(ROUND_PHASE.IDLE)
+    setRoundEvent(null)
+    setRoundGuesses([])
+    setGuessYearsAgo(null)
+    setIsRevealed(false)
+    setSelectedEvent(null)
+    setYearsApart(null)
+    setRoundPoints(0)
+  }, [roundPhase])
 
   useEffect(() => {
     if (!pointsPopup) return undefined
@@ -330,7 +384,7 @@ function Game() {
   }, [])
 
   return (
-    <div className="home-page game-page">
+    <div className={`home-page game-page ${isRevealFocus ? 'game-round-focus' : ''}`}>
       <motion.section
         className="hero-section game-hero"
         initial={{ opacity: 0, y: 16 }}
@@ -350,12 +404,12 @@ function Game() {
               {isMultiplayer
                 ? (
                     isRevealed
-                      ? `Revealed · Best guess ${formatYearsAgoShort(yearsApart || 0)} apart · Round ${roundPoints} pts`
+                      ? `Revealed · Best guess ${formatYearsAgoShort(yearsApart || 0)} apart · Round ${roundPoints} pts · Click timeline to resume`
                       : `Turn: ${activePlayer?.name || 'Player'} (${Math.min(roundGuesses.length + 1, players.length)}/${players.length})`
                   )
                 : (
                     isRevealed
-                      ? `Revealed: ${formatYearsAgoShort(yearsApart || 0)} apart · ${roundPoints} pts`
+                      ? `Revealed: ${formatYearsAgoShort(yearsApart || 0)} apart · ${roundPoints} pts · Click timeline to resume`
                       : 'Round active: place your guess on timeline'
                   )}
             </span>
@@ -450,7 +504,7 @@ function Game() {
         >
           None
         </button>
-        {labels.map((labelItem) => {
+        {gameLabels.map((labelItem) => {
           const isActive = activeLabels.includes(labelItem.name)
           return (
             <button
@@ -497,13 +551,15 @@ function Game() {
             selectedEvent={selectedEvent}
             onEventClick={handleEventClick}
             labelColorMap={labelColorMap}
-            hiddenEventIds={hiddenEventIds}
+            hiddenEventIds={[]}
             showRandomEventButton={false}
-            gameGhostEvent={roundEvent && !isRevealed ? roundEvent : null}
+            gameGhostEvent={roundEvent && isGuessingPhase ? roundEvent : null}
             gameGhostColor={isMultiplayer ? activePlayer?.color || null : null}
             gameGuessMarkers={gameGuessMarkers}
+            gameActualMarker={gameActualMarker}
             onGameGuessMove={handleGuessMove}
             onGameGuessPlace={handleGuessPlace}
+            onTimelineClick={handleTimelineBackgroundClick}
           />
         )}
       </motion.section>

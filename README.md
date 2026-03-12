@@ -2,6 +2,10 @@
 
 https://history-arrow.yanick-christen.com/
 
+History Arrow is an interactive website for exploring history through time. It turns historical moments into a visual timeline so you can quickly understand when things happened and how periods overlap.
+
+On the site, you can browse events across different eras, hover over markers to read details, and navigate between single-date events and longer time spans. If you sign in as an admin, you can also add, edit, and manage timeline events.
+
 A full-stack web application for visualizing historical events along a dynamic timeline. Users can explore point events (specific dates) and time spans (ranges) through an intuitive hover-based interface.
 
 ## Features
