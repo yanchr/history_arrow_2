@@ -50,6 +50,64 @@ const GEO_MAP_FRAME_COUNT = 531
 const GEO_MAP_VIDEO_FPS = 30
 const GEO_MAP_VIDEO_DURATION_SECONDS = (GEO_MAP_FRAME_COUNT - 1) / GEO_MAP_VIDEO_FPS
 const GEO_MAP_VIDEO_FRAME_TIME = 1 / GEO_MAP_VIDEO_FPS
+const LIFE_EXPECTANCY_WORLD_ENTITY = 'World'
+const LIFE_EXPECTANCY_CONTINENTS = ['Africa', 'Americas', 'Asia', 'Europe', 'Oceania']
+const MADDISON_REGION_ORDER = [
+  'East Asia',
+  'South and South East Asia',
+  'Sub Saharan Africa',
+  'Middle East and North Africa',
+  'Latin America',
+  'Eastern Europe',
+  'Western Europe',
+  'Western Offshoots'
+]
+const POPULATION_MAX_YEAR = 2022
+
+const getValueAtOrBeforeYear = (valuesByYear, sortedYears, targetYear) => {
+  if (!Number.isFinite(targetYear) || !valuesByYear || !Array.isArray(sortedYears) || sortedYears.length === 0) {
+    return null
+  }
+
+  let left = 0
+  let right = sortedYears.length - 1
+  let bestYear = null
+
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2)
+    const year = sortedYears[mid]
+
+    if (year <= targetYear) {
+      bestYear = year
+      left = mid + 1
+    } else {
+      right = mid - 1
+    }
+  }
+
+  if (bestYear === null) return null
+
+  const value = valuesByYear instanceof Map
+    ? valuesByYear.get(bestYear)
+    : valuesByYear[String(bestYear)]
+
+  if (!Number.isFinite(value)) return null
+  return { year: bestYear, value }
+}
+
+const formatLifeExpectancy = (value) => `${value.toFixed(1)} years`
+
+const formatPopulationCompact = (populationThousands) => {
+  const population = populationThousands * 1000
+  if (population >= 1e9) return `${(population / 1e9).toFixed(2).replace(/\.?0+$/, '')}B`
+  if (population >= 1e6) return `${(population / 1e6).toFixed(2).replace(/\.?0+$/, '')}M`
+  return `${Math.round(population).toLocaleString()}`
+}
+
+const formatPopulationFull = (populationThousands) => {
+  const population = Math.round(populationThousands * 1000)
+  return population.toLocaleString()
+}
 
 const estimateLabelWidthPx = (title, maxWidthPx) => {
   const safeTitle = typeof title === 'string' ? title : ''
@@ -147,8 +205,15 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   const [isMapModalOpen, setIsMapModalOpen] = useState(false)
   const [isHeaderExpanded, setIsHeaderExpanded] = useState(true)
   const [mapMiniHover, setMapMiniHover] = useState({ active: false, percentage: 0 })
+  const [lastTimelineYearsAgo, setLastTimelineYearsAgo] = useState(null)
+  const [lastMapMiniPercentage, setLastMapMiniPercentage] = useState(null)
   const [inlineVideoReady, setInlineVideoReady] = useState(false)
   const [modalVideoReady, setModalVideoReady] = useState(false)
+  const [lifeExpectancyByEntity, setLifeExpectancyByEntity] = useState(() => new Map())
+  const [lifeExpectancyYearsByEntity, setLifeExpectancyYearsByEntity] = useState(() => new Map())
+  const [populationWorldByYear, setPopulationWorldByYear] = useState({})
+  const [populationRegionsByYear, setPopulationRegionsByYear] = useState({})
+  const [populationYears, setPopulationYears] = useState([])
   // View state: years ago for the visible range
   // viewStart = closer to present (smaller years ago)
   // viewEnd = further in past (larger years ago)
@@ -159,6 +224,69 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   const inlineMapVideoRef = useRef(null)
   const modalMapVideoRef = useRef(null)
   const hiddenEventIdSet = useMemo(() => new Set(hiddenEventIds), [hiddenEventIds])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadDemographicData = async () => {
+      try {
+        const [lifeResponse, populationResponse] = await Promise.all([
+          fetch('/data/life-expectancy.csv'),
+          fetch('/data/maddison2023_population_aggregates.json')
+        ])
+
+        if (!lifeResponse.ok || !populationResponse.ok) {
+          throw new Error('Failed to load demographic data.')
+        }
+
+        const [lifeCsv, populationJson] = await Promise.all([
+          lifeResponse.text(),
+          populationResponse.json()
+        ])
+
+        if (cancelled) return
+
+        const lifeByEntity = new Map()
+        const lines = lifeCsv.split(/\r?\n/).filter(Boolean)
+        lines.slice(1).forEach((line) => {
+          const [entity, , yearString, valueString] = line.split(',')
+          const year = Number(yearString)
+          const value = Number(valueString)
+          if (!entity || !Number.isFinite(year) || !Number.isFinite(value)) return
+
+          const entityMap = lifeByEntity.get(entity) || new Map()
+          entityMap.set(year, value)
+          lifeByEntity.set(entity, entityMap)
+        })
+
+        const yearsByEntity = new Map()
+        lifeByEntity.forEach((entityMap, entity) => {
+          const sortedYears = [...entityMap.keys()].sort((a, b) => a - b)
+          yearsByEntity.set(entity, sortedYears)
+        })
+
+        const worldByYear = populationJson?.worldByYear || {}
+        const regionsByYear = populationJson?.regionsByYear || {}
+        const sortedPopulationYears = Object.keys(worldByYear)
+          .map(Number)
+          .filter(Number.isFinite)
+          .sort((a, b) => a - b)
+
+        setLifeExpectancyByEntity(lifeByEntity)
+        setLifeExpectancyYearsByEntity(yearsByEntity)
+        setPopulationWorldByYear(worldByYear)
+        setPopulationRegionsByYear(regionsByYear)
+        setPopulationYears(sortedPopulationYears)
+      } catch (error) {
+        console.error('Could not load demographic overlays:', error)
+      }
+    }
+
+    loadDemographicData()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const centerViewOnEvent = useCallback((event) => {
     const startYearsAgo = eventToYearsAgo(event)
@@ -590,6 +718,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
       percentage,
       yearsAgo
     })
+    setLastTimelineYearsAgo(yearsAgo)
     onGameGuessMove?.({ percentage, yearsAgo })
   }, [viewStart, viewEnd, onGameGuessMove])
 
@@ -602,6 +731,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
       if (Math.abs(prev.yearsAgo - yearsAgo) < 1e-6) return prev
       return { ...prev, yearsAgo }
     })
+    setLastTimelineYearsAgo(yearsAgo)
     onGameGuessMove?.({ percentage: timelineHover.percentage, yearsAgo })
   }, [timelineHover.active, timelineHover.percentage, viewStart, viewEnd, onGameGuessMove])
 
@@ -719,13 +849,82 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   }, [events, hiddenEventIdSet])
 
   const mapYearsAgo = useMemo(() => {
-    if (mapMiniHover.active) {
+    if (isMapModalOpen && mapMiniHover.active) {
       return linearPositionToYear(mapMiniHover.percentage, GEO_MAP_MIN_MA * 1e6, GEO_MAP_MAX_MA * 1e6)
     }
-    return timelineHover.active
+    if (isMapModalOpen && Number.isFinite(lastMapMiniPercentage)) {
+      return linearPositionToYear(lastMapMiniPercentage, GEO_MAP_MIN_MA * 1e6, GEO_MAP_MAX_MA * 1e6)
+    }
+    if (timelineHover.active) {
+      return timelineHover.yearsAgo
+    }
+    if (Number.isFinite(lastTimelineYearsAgo)) {
+      return lastTimelineYearsAgo
+    }
+    return (viewStart + viewEnd) / 2
+  }, [
+    mapMiniHover.active,
+    mapMiniHover.percentage,
+    lastMapMiniPercentage,
+    isMapModalOpen,
+    timelineHover.active,
+    timelineHover.yearsAgo,
+    lastTimelineYearsAgo,
+    viewStart,
+    viewEnd
+  ])
+
+  const hoveredTimelineYear = useMemo(() => {
+    const yearsAgo = timelineHover.active
       ? timelineHover.yearsAgo
-      : (viewStart + viewEnd) / 2
-  }, [mapMiniHover.active, mapMiniHover.percentage, timelineHover.active, timelineHover.yearsAgo, viewStart, viewEnd])
+      : lastTimelineYearsAgo
+    if (!Number.isFinite(yearsAgo)) return null
+    return Math.round(CURRENT_YEAR - yearsAgo)
+  }, [timelineHover.active, timelineHover.yearsAgo, lastTimelineYearsAgo])
+
+  const lifeExpectancyWorld = useMemo(() => {
+    if (!Number.isFinite(hoveredTimelineYear)) return null
+    const worldSeries = lifeExpectancyByEntity.get(LIFE_EXPECTANCY_WORLD_ENTITY)
+    const worldYears = lifeExpectancyYearsByEntity.get(LIFE_EXPECTANCY_WORLD_ENTITY) || []
+    return getValueAtOrBeforeYear(worldSeries, worldYears, hoveredTimelineYear)
+  }, [hoveredTimelineYear, lifeExpectancyByEntity, lifeExpectancyYearsByEntity])
+
+  const lifeExpectancyTooltipRows = useMemo(() => {
+    if (!Number.isFinite(hoveredTimelineYear)) return []
+    return LIFE_EXPECTANCY_CONTINENTS.map((continent) => {
+      const continentSeries = lifeExpectancyByEntity.get(continent)
+      const continentYears = lifeExpectancyYearsByEntity.get(continent) || []
+      const entry = getValueAtOrBeforeYear(continentSeries, continentYears, hoveredTimelineYear)
+      return {
+        name: continent,
+        value: entry ? formatLifeExpectancy(entry.value) : 'N/A'
+      }
+    })
+  }, [hoveredTimelineYear, lifeExpectancyByEntity, lifeExpectancyYearsByEntity])
+
+  const populationWorld = useMemo(() => {
+    if (!Number.isFinite(hoveredTimelineYear)) return { state: 'idle' }
+    if (hoveredTimelineYear > POPULATION_MAX_YEAR) return { state: 'na_after_2022' }
+    const entry = getValueAtOrBeforeYear(populationWorldByYear, populationYears, hoveredTimelineYear)
+    if (!entry) return { state: 'missing' }
+    return {
+      state: 'ready',
+      year: entry.year,
+      value: entry.value
+    }
+  }, [hoveredTimelineYear, populationWorldByYear, populationYears])
+
+  const populationTooltipRows = useMemo(() => {
+    if (populationWorld.state !== 'ready') return []
+    const regionValues = populationRegionsByYear[String(populationWorld.year)] || {}
+    return MADDISON_REGION_ORDER.map((regionName) => {
+      const value = regionValues[regionName]
+      return {
+        name: regionName,
+        value: Number.isFinite(value) ? formatPopulationCompact(value) : 'N/A'
+      }
+    })
+  }, [populationWorld, populationRegionsByYear])
 
   const mapFrameMa = useMemo(() => {
     const rawFrame = mapYearsAgo / 1e6
@@ -796,6 +995,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   useEffect(() => {
     if (isMapModalOpen) return
     setMapMiniHover({ active: false, percentage: 0 })
+    setLastMapMiniPercentage(null)
   }, [isMapModalOpen])
 
   const handleMapMiniTimelineMove = useCallback((event) => {
@@ -804,6 +1004,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     const x = event.clientX - rect.left
     const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100))
     setMapMiniHover({ active: true, percentage })
+    setLastMapMiniPercentage(percentage)
   }, [])
 
   const handleMapMiniTimelineLeave = useCallback(() => {
@@ -931,10 +1132,102 @@ const HistoryArrow = forwardRef(function HistoryArrow({
             </div>
 
             <div className="timeline-title-group">
-              <h3 className="timeline-title">{title}</h3>
+              <div className="timeline-title-row">
+                <h3 className="timeline-title">{title}</h3>
+              </div>
               {titleHint && (
                 <span className="timeline-title-hint">{titleHint}</span>
               )}
+              <div className="timeline-demographics">
+                <div className="timeline-demographic-item" role="note" aria-label="World life expectancy at hovered timeline year">
+                  <span className="demographic-label">Life expectancy</span>
+                  <span className="demographic-value">
+                    {!Number.isFinite(hoveredTimelineYear)
+                      ? 'Hover timeline'
+                      : lifeExpectancyWorld
+                        ? formatLifeExpectancy(lifeExpectancyWorld.value)
+                        : 'N/A'}
+                  </span>
+                  <span className="demographic-year">
+                    {lifeExpectancyWorld ? `${lifeExpectancyWorld.year}` : '\u00a0'}
+                  </span>
+                  <div className="demographic-tooltip" role="tooltip">
+                    <div className="demographic-tooltip-title">Continents</div>
+                    {!Number.isFinite(hoveredTimelineYear) && (
+                      <div className="demographic-tooltip-empty">Hover timeline to inspect values.</div>
+                    )}
+                    {Number.isFinite(hoveredTimelineYear) && lifeExpectancyTooltipRows.map((row) => (
+                      <div key={row.name} className="demographic-tooltip-row">
+                        <span>{row.name}</span>
+                        <strong>{row.value}</strong>
+                      </div>
+                    ))}
+                    <div className="demographic-tooltip-footnote">
+                      Low historical life expectancy does not mean everyone died young; high child mortality lowered the average.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="timeline-demographic-item" role="note" aria-label="World population at hovered timeline year">
+                  <span className="demographic-label">World population</span>
+                  <span className="demographic-value">
+                    {!Number.isFinite(hoveredTimelineYear)
+                      ? 'Hover timeline'
+                      : populationWorld.state === 'na_after_2022'
+                        ? 'N/A'
+                        : populationWorld.state === 'ready'
+                          ? formatPopulationCompact(populationWorld.value)
+                          : 'N/A'}
+                  </span>
+                  <span className="demographic-year">
+                    {populationWorld.state === 'ready' ? `${populationWorld.year}` : '\u00a0'}
+                  </span>
+                  <div className="demographic-tooltip" role="tooltip">
+                    <div className="demographic-tooltip-title">Maddison regions</div>
+                    {populationWorld.state === 'na_after_2022' && (
+                      <div className="demographic-tooltip-empty">No data after 2022.</div>
+                    )}
+                    {populationWorld.state === 'ready' && (
+                      <>
+                        {populationTooltipRows.map((row) => (
+                          <div key={row.name} className="demographic-tooltip-row">
+                            <span>{row.name}</span>
+                            <strong>{row.value}</strong>
+                          </div>
+                        ))}
+                        <div className="demographic-tooltip-footnote">
+                          Unit: people (from thousands in source)
+                        </div>
+                      </>
+                    )}
+                    {populationWorld.state === 'missing' && (
+                      <div className="demographic-tooltip-empty">No population value for this hover year.</div>
+                    )}
+                    {populationWorld.state === 'idle' && (
+                      <div className="demographic-tooltip-empty">Hover timeline to inspect values.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="timeline-attribution">
+                <span>
+                  Life expectancy: Riley (2005); Zijdeman et al. (2015); HMD (2025); UN WPP (2024), processed by OWID.
+                </span>
+                <span>
+                  Population: Agnus Maddison,{' '}
+                  <a href="https://ghdx.healthdata.org/organizations/groningen-growth-and-development-centre-university-groningen" target="_blank" rel="noreferrer">
+                    Groningen Growth and Development Centre, University of Groningen
+                  </a>
+                  {' '}·{' '}
+                  <a href="https://ghdx.healthdata.org/record/statistics-world-population-gdp-and-capita-gdp-1-2008-ad" target="_blank" rel="noreferrer">
+                    Statistics on World Population, GDP, and Per Capita GDP 1-2008 AD
+                  </a>
+                  .
+                  {populationWorld.state === 'ready' && (
+                    <> Current hover: {formatPopulationFull(populationWorld.value)} ({populationWorld.year}).</>
+                  )}
+                </span>
+              </div>
             </div>
             <div className="timeline-actions">
               <form className="center-input-form" onSubmit={handleCenterInputSubmit}>

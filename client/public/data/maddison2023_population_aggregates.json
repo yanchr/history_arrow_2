@@ -1,0 +1,1979 @@
+{
+  "meta": {
+    "source": "Maddison Project Database 2023",
+    "unit": "population (thousands)",
+    "maxYear": 2022
+  },
+  "worldByYear": {
+    "1": 201470,
+    "1000": 224470,
+    "1500": 370542,
+    "1600": 478520,
+    "1700": 514341,
+    "1820": 995656,
+    "1821": 794940,
+    "1822": 800394,
+    "1823": 805881,
+    "1824": 811397,
+    "1825": 816946,
+    "1826": 822453,
+    "1827": 827939,
+    "1828": 833443,
+    "1829": 838942,
+    "1830": 845732,
+    "1831": 847415,
+    "1832": 850326,
+    "1833": 853252,
+    "1834": 856120,
+    "1835": 859249,
+    "1836": 862308,
+    "1837": 865412,
+    "1838": 868537,
+    "1839": 871705,
+    "1840": 876674,
+    "1841": 877970,
+    "1842": 880983,
+    "1843": 883925,
+    "1844": 886972,
+    "1845": 890031,
+    "1846": 892964,
+    "1847": 895062,
+    "1848": 896502,
+    "1849": 898457,
+    "1850": 1082298,
+    "1851": 899365,
+    "1852": 898671,
+    "1853": 898087,
+    "1854": 897392,
+    "1855": 896899,
+    "1856": 896480,
+    "1857": 896159,
+    "1858": 895964,
+    "1859": 895846,
+    "1860": 899325,
+    "1861": 897275,
+    "1862": 898783,
+    "1863": 900346,
+    "1864": 901921,
+    "1865": 903510,
+    "1866": 904833,
+    "1867": 906232,
+    "1868": 907425,
+    "1869": 909289,
+    "1870": 1206164,
+    "1871": 945409,
+    "1872": 949774,
+    "1873": 954579,
+    "1874": 959500,
+    "1875": 964499,
+    "1876": 969874,
+    "1877": 975308,
+    "1878": 980566,
+    "1879": 985973,
+    "1880": 991069,
+    "1881": 998234,
+    "1882": 1005758,
+    "1883": 1013044,
+    "1884": 1020635,
+    "1885": 1028088,
+    "1886": 1035508,
+    "1887": 1042949,
+    "1888": 1050609,
+    "1889": 1058463,
+    "1890": 1292040,
+    "1891": 1072919,
+    "1892": 1079721,
+    "1893": 1086525,
+    "1894": 1093675,
+    "1895": 1100885,
+    "1896": 1111735,
+    "1897": 1119438,
+    "1898": 1129926,
+    "1899": 1137719,
+    "1900": 1404571,
+    "1901": 1204006,
+    "1902": 1214828,
+    "1903": 1225449,
+    "1904": 1236299,
+    "1905": 1247195,
+    "1906": 1258063,
+    "1907": 1269022,
+    "1908": 1280361,
+    "1909": 1291875,
+    "1910": 1391004,
+    "1911": 1326498,
+    "1912": 1338213,
+    "1913": 1699234,
+    "1914": 1364179,
+    "1915": 1374422,
+    "1916": 1384339,
+    "1917": 1393799,
+    "1918": 1401557,
+    "1919": 1405936,
+    "1920": 1648416,
+    "1921": 1654740,
+    "1922": 1668085,
+    "1923": 1697416,
+    "1924": 1714745,
+    "1925": 1732567,
+    "1926": 1750740,
+    "1927": 1768448,
+    "1928": 1786184,
+    "1929": 1803178,
+    "1930": 1820154,
+    "1931": 1839875,
+    "1932": 1858478,
+    "1933": 1876781,
+    "1934": 1894616,
+    "1935": 1913122,
+    "1936": 1932047,
+    "1937": 1952959,
+    "1938": 1974700,
+    "1939": 1997155,
+    "1940": 2016209,
+    "1941": 1789417,
+    "1942": 1803842,
+    "1943": 1819917,
+    "1944": 1835520,
+    "1945": 1847889,
+    "1946": 2062954,
+    "1947": 2026825,
+    "1948": 2051131,
+    "1949": 2077688,
+    "1950": 2725698.7874,
+    "1951": 2772974.8748,
+    "1952": 2822574.7717,
+    "1953": 2873815.0088,
+    "1954": 2928083.0979,
+    "1955": 2983755.7095,
+    "1956": 3040718.7285,
+    "1957": 3101688.083,
+    "1958": 3164597.7077,
+    "1959": 3224988.1406,
+    "1960": 3274432.6446,
+    "1961": 3318940.2667,
+    "1962": 3376080.0657,
+    "1963": 3444906.167,
+    "1964": 3513093.2898,
+    "1965": 3582506.4916,
+    "1966": 3654219.6056,
+    "1967": 3725741.3829,
+    "1968": 3799430.6494,
+    "1969": 3874148.0464,
+    "1970": 3951598.2616,
+    "1971": 4032488.0646,
+    "1972": 4111515.8963,
+    "1973": 4190019.7878,
+    "1974": 4267212.0411,
+    "1975": 4342568.0692,
+    "1976": 4415618.9515,
+    "1977": 4490004.097,
+    "1978": 4564776.5177,
+    "1979": 4643015.2993,
+    "1980": 4720776.1314,
+    "1981": 4797912.0943,
+    "1982": 4872227.2881,
+    "1983": 4962844.9915,
+    "1984": 5045021.8723,
+    "1985": 5128146.0353,
+    "1986": 5213313.4729,
+    "1987": 5300891.0032,
+    "1988": 5389487.1119,
+    "1989": 5477893.879,
+    "1990": 5567939.4181,
+    "1991": 5655789.767,
+    "1992": 5741805.56,
+    "1993": 5818826.353,
+    "1994": 5898473.422,
+    "1995": 5979319.959,
+    "1996": 6060256.757,
+    "1997": 6140194.347,
+    "1998": 6218798.346,
+    "1999": 6296736.562,
+    "2000": 6374732.473,
+    "2001": 6452133.723,
+    "2002": 6530171.225,
+    "2003": 6608033.492,
+    "2004": 6686010.085,
+    "2005": 6764198.299,
+    "2006": 6843452.042,
+    "2007": 6924415.792,
+    "2008": 7006800.021,
+    "2009": 7088334.987,
+    "2010": 7169820.685,
+    "2011": 7252486.91,
+    "2012": 7337439.465,
+    "2013": 7421351.428,
+    "2014": 7511824.962,
+    "2015": 7594529.334,
+    "2016": 7677949.431,
+    "2017": 7761177.5639,
+    "2018": 7842415.048,
+    "2019": 7924180.9869,
+    "2020": 8003648.5185,
+    "2021": 8071611.8179,
+    "2022": 8133374.1844
+  },
+  "regionsByYear": {
+    "1": {
+      "East Asia": 62600,
+      "Eastern Europe": 8650,
+      "Latin America": 2200,
+      "Middle East and North Africa": 21700,
+      "South and South East Asia": 77800,
+      "Sub Saharan Africa": 2650,
+      "Western Europe": 24750,
+      "Western Offshoots": 1120
+    },
+    "1000": {
+      "East Asia": 66500,
+      "Eastern Europe": 13600,
+      "Latin America": 8200,
+      "Middle East and North Africa": 24000,
+      "South and South East Asia": 80200,
+      "Sub Saharan Africa": 4800,
+      "Western Europe": 25300,
+      "Western Offshoots": 1870
+    },
+    "1500": {
+      "East Asia": 118400,
+      "Eastern Europe": 30450,
+      "Latin America": 12500,
+      "Middle East and North Africa": 19600,
+      "South and South East Asia": 120700,
+      "Sub Saharan Africa": 8300,
+      "Western Europe": 57792,
+      "Western Offshoots": 2800
+    },
+    "1600": {
+      "East Asia": 178500,
+      "Eastern Europe": 37650,
+      "Latin America": 4600,
+      "Middle East and North Africa": 25150,
+      "South and South East Asia": 146700,
+      "Sub Saharan Africa": 9200,
+      "Western Europe": 74420,
+      "Western Offshoots": 2300
+    },
+    "1700": {
+      "East Asia": 165000,
+      "Eastern Europe": 45350,
+      "Latin America": 7050,
+      "Middle East and North Africa": 23700,
+      "South and South East Asia": 178100,
+      "Sub Saharan Africa": 10400,
+      "Western Europe": 82991,
+      "Western Offshoots": 1750
+    },
+    "1820": {
+      "East Asia": 427757,
+      "Eastern Europe": 91222,
+      "Latin America": 20704,
+      "Middle East and North Africa": 35936,
+      "South and South East Asia": 255695,
+      "Sub Saharan Africa": 13639,
+      "Western Europe": 139472,
+      "Western Offshoots": 11231
+    },
+    "1821": {
+      "East Asia": 414745,
+      "Latin America": 789,
+      "South and South East Asia": 227918,
+      "Western Europe": 140858,
+      "Western Offshoots": 10630
+    },
+    "1822": {
+      "East Asia": 417508,
+      "Latin America": 807,
+      "South and South East Asia": 228914,
+      "Western Europe": 142210,
+      "Western Offshoots": 10955
+    },
+    "1823": {
+      "East Asia": 420292,
+      "Latin America": 826,
+      "South and South East Asia": 229914,
+      "Western Europe": 143569,
+      "Western Offshoots": 11280
+    },
+    "1824": {
+      "East Asia": 423094,
+      "Latin America": 845,
+      "South and South East Asia": 230919,
+      "Western Europe": 144930,
+      "Western Offshoots": 11609
+    },
+    "1825": {
+      "East Asia": 425916,
+      "Latin America": 864,
+      "South and South East Asia": 231929,
+      "Western Europe": 146302,
+      "Western Offshoots": 11935
+    },
+    "1826": {
+      "East Asia": 428758,
+      "Latin America": 884,
+      "South and South East Asia": 232944,
+      "Western Europe": 147609,
+      "Western Offshoots": 12258
+    },
+    "1827": {
+      "East Asia": 431622,
+      "Latin America": 904,
+      "South and South East Asia": 233963,
+      "Western Europe": 148871,
+      "Western Offshoots": 12579
+    },
+    "1828": {
+      "East Asia": 434504,
+      "Latin America": 924,
+      "South and South East Asia": 234988,
+      "Western Europe": 150120,
+      "Western Offshoots": 12907
+    },
+    "1829": {
+      "East Asia": 437407,
+      "Latin America": 944,
+      "South and South East Asia": 236016,
+      "Western Europe": 151343,
+      "Western Offshoots": 13232
+    },
+    "1830": {
+      "East Asia": 440330,
+      "Latin America": 965,
+      "South and South East Asia": 237050,
+      "Western Europe": 152548,
+      "Western Offshoots": 14839
+    },
+    "1831": {
+      "East Asia": 440662,
+      "Latin America": 986,
+      "South and South East Asia": 238088,
+      "Western Europe": 153687,
+      "Western Offshoots": 13992
+    },
+    "1832": {
+      "East Asia": 440994,
+      "Latin America": 1007,
+      "South and South East Asia": 239132,
+      "Western Europe": 154777,
+      "Western Offshoots": 14416
+    },
+    "1833": {
+      "East Asia": 441327,
+      "Latin America": 1028,
+      "South and South East Asia": 240180,
+      "Western Europe": 155872,
+      "Western Offshoots": 14845
+    },
+    "1834": {
+      "East Asia": 441660,
+      "Latin America": 1050,
+      "South and South East Asia": 241233,
+      "Western Europe": 156908,
+      "Western Offshoots": 15269
+    },
+    "1835": {
+      "East Asia": 441993,
+      "Latin America": 1071,
+      "South and South East Asia": 242292,
+      "Western Europe": 158201,
+      "Western Offshoots": 15692
+    },
+    "1836": {
+      "East Asia": 442326,
+      "Latin America": 1093,
+      "South and South East Asia": 243355,
+      "Western Europe": 159414,
+      "Western Offshoots": 16120
+    },
+    "1837": {
+      "East Asia": 442661,
+      "Latin America": 1115,
+      "South and South East Asia": 244423,
+      "Western Europe": 160669,
+      "Western Offshoots": 16544
+    },
+    "1838": {
+      "East Asia": 442994,
+      "Latin America": 1137,
+      "South and South East Asia": 245497,
+      "Western Europe": 161930,
+      "Western Offshoots": 16979
+    },
+    "1839": {
+      "East Asia": 443329,
+      "Latin America": 1159,
+      "South and South East Asia": 246574,
+      "Western Europe": 163231,
+      "Western Offshoots": 17412
+    },
+    "1840": {
+      "East Asia": 443663,
+      "Latin America": 1181,
+      "South and South East Asia": 247658,
+      "Western Europe": 164541,
+      "Western Offshoots": 19631
+    },
+    "1841": {
+      "East Asia": 443697,
+      "Latin America": 1203,
+      "South and South East Asia": 248746,
+      "Western Europe": 165820,
+      "Western Offshoots": 18504
+    },
+    "1842": {
+      "East Asia": 443730,
+      "Latin America": 1225,
+      "South and South East Asia": 249840,
+      "Western Europe": 167056,
+      "Western Offshoots": 19132
+    },
+    "1843": {
+      "East Asia": 443764,
+      "Latin America": 1248,
+      "South and South East Asia": 250938,
+      "Western Europe": 168224,
+      "Western Offshoots": 19751
+    },
+    "1844": {
+      "East Asia": 443797,
+      "Latin America": 1271,
+      "South and South East Asia": 252042,
+      "Western Europe": 169490,
+      "Western Offshoots": 20372
+    },
+    "1845": {
+      "East Asia": 443831,
+      "Latin America": 1293,
+      "South and South East Asia": 253152,
+      "Western Europe": 170758,
+      "Western Offshoots": 20997
+    },
+    "1846": {
+      "East Asia": 443865,
+      "Latin America": 1316,
+      "South and South East Asia": 254266,
+      "Western Europe": 171898,
+      "Western Offshoots": 21619
+    },
+    "1847": {
+      "East Asia": 443899,
+      "Latin America": 1339,
+      "South and South East Asia": 255386,
+      "Western Europe": 172194,
+      "Western Offshoots": 22244
+    },
+    "1848": {
+      "East Asia": 443932,
+      "Latin America": 1363,
+      "South and South East Asia": 256511,
+      "Western Europe": 171821,
+      "Western Offshoots": 22875
+    },
+    "1849": {
+      "East Asia": 443966,
+      "Latin America": 1386,
+      "South and South East Asia": 257642,
+      "Western Europe": 171937,
+      "Western Offshoots": 23526
+    },
+    "1850": {
+      "East Asia": 455774,
+      "Eastern Europe": 118161,
+      "Latin America": 30671,
+      "South and South East Asia": 278706,
+      "Western Europe": 172226,
+      "Western Offshoots": 26760
+    },
+    "1851": {
+      "East Asia": 440477,
+      "Latin America": 1434,
+      "South and South East Asia": 259875,
+      "Western Europe": 172538,
+      "Western Offshoots": 25041
+    },
+    "1852": {
+      "East Asia": 436985,
+      "Latin America": 1458,
+      "South and South East Asia": 260978,
+      "Western Europe": 173309,
+      "Western Offshoots": 25941
+    },
+    "1853": {
+      "East Asia": 433526,
+      "Latin America": 1482,
+      "South and South East Asia": 262087,
+      "Western Europe": 174040,
+      "Western Offshoots": 26952
+    },
+    "1854": {
+      "East Asia": 430099,
+      "Latin America": 1507,
+      "South and South East Asia": 263203,
+      "Western Europe": 174814,
+      "Western Offshoots": 27769
+    },
+    "1855": {
+      "East Asia": 426705,
+      "Latin America": 1532,
+      "South and South East Asia": 264325,
+      "Western Europe": 175646,
+      "Western Offshoots": 28691
+    },
+    "1856": {
+      "East Asia": 423340,
+      "Latin America": 1557,
+      "South and South East Asia": 265452,
+      "Western Europe": 176531,
+      "Western Offshoots": 29600
+    },
+    "1857": {
+      "East Asia": 420009,
+      "Latin America": 1582,
+      "South and South East Asia": 266587,
+      "Western Europe": 177465,
+      "Western Offshoots": 30516
+    },
+    "1858": {
+      "East Asia": 416707,
+      "Latin America": 1608,
+      "South and South East Asia": 267727,
+      "Western Europe": 178501,
+      "Western Offshoots": 31421
+    },
+    "1859": {
+      "East Asia": 413437,
+      "Latin America": 1634,
+      "South and South East Asia": 268874,
+      "Western Europe": 179610,
+      "Western Offshoots": 32291
+    },
+    "1860": {
+      "East Asia": 410196,
+      "Latin America": 1661,
+      "South and South East Asia": 270028,
+      "Western Europe": 180774,
+      "Western Offshoots": 36666
+    },
+    "1861": {
+      "East Asia": 408373,
+      "Latin America": 1687,
+      "South and South East Asia": 271187,
+      "Western Europe": 182004,
+      "Western Offshoots": 34024
+    },
+    "1862": {
+      "East Asia": 406562,
+      "Latin America": 1715,
+      "South and South East Asia": 272353,
+      "Western Europe": 183255,
+      "Western Offshoots": 34898
+    },
+    "1863": {
+      "East Asia": 404760,
+      "Latin America": 1742,
+      "South and South East Asia": 273526,
+      "Western Europe": 184531,
+      "Western Offshoots": 35787
+    },
+    "1864": {
+      "East Asia": 402969,
+      "Latin America": 1770,
+      "South and South East Asia": 274705,
+      "Western Europe": 185790,
+      "Western Offshoots": 36687
+    },
+    "1865": {
+      "East Asia": 401188,
+      "Latin America": 1798,
+      "South and South East Asia": 275891,
+      "Western Europe": 187044,
+      "Western Offshoots": 37589
+    },
+    "1866": {
+      "East Asia": 399417,
+      "Latin America": 1827,
+      "South and South East Asia": 277083,
+      "Western Europe": 188028,
+      "Western Offshoots": 38478
+    },
+    "1867": {
+      "East Asia": 397657,
+      "Latin America": 1856,
+      "South and South East Asia": 278283,
+      "Western Europe": 189081,
+      "Western Offshoots": 39355
+    },
+    "1868": {
+      "East Asia": 395907,
+      "Latin America": 1885,
+      "South and South East Asia": 279489,
+      "Western Europe": 189898,
+      "Western Offshoots": 40246
+    },
+    "1869": {
+      "East Asia": 394167,
+      "Latin America": 1915,
+      "South and South East Asia": 280702,
+      "Western Europe": 191370,
+      "Western Offshoots": 41135
+    },
+    "1870": {
+      "East Asia": 409153,
+      "Eastern Europe": 142229,
+      "Latin America": 39023,
+      "Middle East and North Africa": 45868,
+      "South and South East Asia": 327692,
+      "Sub Saharan Africa": 4126,
+      "Western Europe": 191985,
+      "Western Offshoots": 46088
+    },
+    "1871": {
+      "East Asia": 393636,
+      "Latin America": 23315,
+      "South and South East Asia": 289305,
+      "Western Europe": 192273,
+      "Western Offshoots": 46880
+    },
+    "1872": {
+      "East Asia": 394837,
+      "Latin America": 23680,
+      "South and South East Asia": 290073,
+      "Western Europe": 193136,
+      "Western Offshoots": 48048
+    },
+    "1873": {
+      "East Asia": 396041,
+      "Latin America": 24054,
+      "South and South East Asia": 290847,
+      "Western Europe": 194416,
+      "Western Offshoots": 49221
+    },
+    "1874": {
+      "East Asia": 397202,
+      "Latin America": 24434,
+      "South and South East Asia": 291626,
+      "Western Europe": 195825,
+      "Western Offshoots": 50413
+    },
+    "1875": {
+      "East Asia": 398402,
+      "Latin America": 24823,
+      "South and South East Asia": 292411,
+      "Western Europe": 197267,
+      "Western Offshoots": 51596
+    },
+    "1876": {
+      "East Asia": 399680,
+      "Latin America": 25220,
+      "South and South East Asia": 293202,
+      "Western Europe": 198994,
+      "Western Offshoots": 52778
+    },
+    "1877": {
+      "East Asia": 400989,
+      "Latin America": 25624,
+      "South and South East Asia": 293998,
+      "Western Europe": 200743,
+      "Western Offshoots": 53954
+    },
+    "1878": {
+      "East Asia": 402293,
+      "Latin America": 26034,
+      "South and South East Asia": 294800,
+      "Western Europe": 202304,
+      "Western Offshoots": 55135
+    },
+    "1879": {
+      "East Asia": 403545,
+      "Latin America": 26450,
+      "South and South East Asia": 295609,
+      "Western Europe": 204036,
+      "Western Offshoots": 56333
+    },
+    "1880": {
+      "East Asia": 404807,
+      "Latin America": 26873,
+      "South and South East Asia": 296424,
+      "Western Europe": 205406,
+      "Western Offshoots": 57559
+    },
+    "1881": {
+      "East Asia": 406295,
+      "Latin America": 27305,
+      "South and South East Asia": 298980,
+      "Western Europe": 206652,
+      "Western Offshoots": 59002
+    },
+    "1882": {
+      "East Asia": 407783,
+      "Latin America": 27744,
+      "South and South East Asia": 301868,
+      "Western Europe": 207930,
+      "Western Offshoots": 60433
+    },
+    "1883": {
+      "East Asia": 409326,
+      "Latin America": 28190,
+      "South and South East Asia": 304485,
+      "Western Europe": 209151,
+      "Western Offshoots": 61892
+    },
+    "1884": {
+      "East Asia": 410892,
+      "Latin America": 28641,
+      "South and South East Asia": 307129,
+      "Western Europe": 210607,
+      "Western Offshoots": 63366
+    },
+    "1885": {
+      "East Asia": 412379,
+      "Latin America": 29096,
+      "South and South East Asia": 309788,
+      "Western Europe": 212016,
+      "Western Offshoots": 64809
+    },
+    "1886": {
+      "East Asia": 413776,
+      "Latin America": 29546,
+      "South and South East Asia": 312468,
+      "Western Europe": 213476,
+      "Western Offshoots": 66242
+    },
+    "1887": {
+      "East Asia": 415225,
+      "Latin America": 30003,
+      "South and South East Asia": 315178,
+      "Western Europe": 214860,
+      "Western Offshoots": 67683
+    },
+    "1888": {
+      "East Asia": 416820,
+      "Latin America": 30478,
+      "South and South East Asia": 317926,
+      "Western Europe": 216259,
+      "Western Offshoots": 69126
+    },
+    "1889": {
+      "East Asia": 418471,
+      "Latin America": 30958,
+      "South and South East Asia": 320709,
+      "Western Europe": 217766,
+      "Western Offshoots": 70559
+    },
+    "1890": {
+      "East Asia": 432610,
+      "Eastern Europe": 175627,
+      "Latin America": 41537,
+      "South and South East Asia": 351070,
+      "Western Europe": 219204,
+      "Western Offshoots": 71992
+    },
+    "1891": {
+      "East Asia": 422359,
+      "Latin America": 32047,
+      "South and South East Asia": 324469,
+      "Western Europe": 220590,
+      "Western Offshoots": 73454
+    },
+    "1892": {
+      "East Asia": 424653,
+      "Latin America": 32659,
+      "South and South East Asia": 325448,
+      "Western Europe": 222057,
+      "Western Offshoots": 74904
+    },
+    "1893": {
+      "East Asia": 426970,
+      "Latin America": 33280,
+      "South and South East Asia": 326423,
+      "Western Europe": 223510,
+      "Western Offshoots": 76342
+    },
+    "1894": {
+      "East Asia": 429329,
+      "Latin America": 33918,
+      "South and South East Asia": 327411,
+      "Western Europe": 225238,
+      "Western Offshoots": 77779
+    },
+    "1895": {
+      "East Asia": 431775,
+      "Latin America": 34593,
+      "South and South East Asia": 328388,
+      "Western Europe": 226914,
+      "Western Offshoots": 79215
+    },
+    "1896": {
+      "East Asia": 434176,
+      "Latin America": 38695,
+      "South and South East Asia": 329407,
+      "Western Europe": 228807,
+      "Western Offshoots": 80650
+    },
+    "1897": {
+      "East Asia": 436613,
+      "Latin America": 39414,
+      "South and South East Asia": 330426,
+      "Western Europe": 230895,
+      "Western Offshoots": 82090
+    },
+    "1898": {
+      "East Asia": 441805,
+      "Latin America": 40149,
+      "South and South East Asia": 331459,
+      "Western Europe": 232986,
+      "Western Offshoots": 83527
+    },
+    "1899": {
+      "East Asia": 444365,
+      "Latin America": 40895,
+      "South and South East Asia": 332490,
+      "Western Europe": 235010,
+      "Western Offshoots": 84959
+    },
+    "1900": {
+      "East Asia": 457058,
+      "Eastern Europe": 195493,
+      "Latin America": 62662,
+      "South and South East Asia": 366060,
+      "Western Europe": 236902,
+      "Western Offshoots": 86396
+    },
+    "1901": {
+      "East Asia": 449782,
+      "Latin America": 63830,
+      "South and South East Asia": 363462,
+      "Western Europe": 238889,
+      "Western Offshoots": 88043
+    },
+    "1902": {
+      "East Asia": 452702,
+      "Latin America": 64992,
+      "South and South East Asia": 366234,
+      "Western Europe": 241087,
+      "Western Offshoots": 89813
+    },
+    "1903": {
+      "East Asia": 455581,
+      "Latin America": 66170,
+      "South and South East Asia": 368965,
+      "Western Europe": 243211,
+      "Western Offshoots": 91522
+    },
+    "1904": {
+      "East Asia": 458448,
+      "Latin America": 67376,
+      "South and South East Asia": 371807,
+      "Western Europe": 245350,
+      "Western Offshoots": 93318
+    },
+    "1905": {
+      "East Asia": 461270,
+      "Latin America": 68579,
+      "South and South East Asia": 374739,
+      "Western Europe": 247371,
+      "Western Offshoots": 95236
+    },
+    "1906": {
+      "East Asia": 464008,
+      "Latin America": 69795,
+      "South and South East Asia": 377575,
+      "Western Europe": 249625,
+      "Western Offshoots": 97060
+    },
+    "1907": {
+      "East Asia": 466820,
+      "Latin America": 71058,
+      "South and South East Asia": 380361,
+      "Western Europe": 251752,
+      "Western Offshoots": 99031
+    },
+    "1908": {
+      "East Asia": 469748,
+      "Latin America": 72337,
+      "South and South East Asia": 383210,
+      "Western Europe": 254005,
+      "Western Offshoots": 101061
+    },
+    "1909": {
+      "East Asia": 472738,
+      "Latin America": 73657,
+      "South and South East Asia": 386090,
+      "Western Europe": 256250,
+      "Western Offshoots": 103140
+    },
+    "1910": {
+      "East Asia": 485890,
+      "Eastern Europe": 77584,
+      "Latin America": 74846,
+      "South and South East Asia": 388803,
+      "Western Europe": 258506,
+      "Western Offshoots": 105375
+    },
+    "1911": {
+      "East Asia": 491480,
+      "Latin America": 76065,
+      "South and South East Asia": 390965,
+      "Western Europe": 260777,
+      "Western Offshoots": 107211
+    },
+    "1912": {
+      "East Asia": 497149,
+      "Latin America": 77308,
+      "South and South East Asia": 392300,
+      "Western Europe": 262398,
+      "Western Offshoots": 109058
+    },
+    "1913": {
+      "East Asia": 508197,
+      "Eastern Europe": 235722,
+      "Latin America": 78579,
+      "Middle East and North Africa": 63332,
+      "South and South East Asia": 429844,
+      "Sub Saharan Africa": 8196,
+      "Western Europe": 263963,
+      "Western Offshoots": 111401
+    },
+    "1914": {
+      "East Asia": 509086,
+      "Latin America": 79881,
+      "South and South East Asia": 395311,
+      "Western Europe": 266227,
+      "Western Offshoots": 113674
+    },
+    "1915": {
+      "East Asia": 514866,
+      "Latin America": 81124,
+      "South and South East Asia": 396629,
+      "Western Europe": 266548,
+      "Western Offshoots": 115255
+    },
+    "1916": {
+      "East Asia": 520699,
+      "Latin America": 82349,
+      "South and South East Asia": 398064,
+      "Western Europe": 266539,
+      "Western Offshoots": 116688
+    },
+    "1917": {
+      "East Asia": 526544,
+      "Latin America": 83591,
+      "South and South East Asia": 399513,
+      "Western Europe": 265955,
+      "Western Offshoots": 118196
+    },
+    "1918": {
+      "East Asia": 532250,
+      "Latin America": 84851,
+      "South and South East Asia": 400505,
+      "Western Europe": 264431,
+      "Western Offshoots": 119520
+    },
+    "1919": {
+      "East Asia": 537955,
+      "Latin America": 86150,
+      "South and South East Asia": 401793,
+      "Western Europe": 259629,
+      "Western Offshoots": 120409
+    },
+    "1920": {
+      "East Asia": 543904,
+      "Eastern Europe": 230270,
+      "Latin America": 87509,
+      "South and South East Asia": 403402,
+      "Western Europe": 261053,
+      "Western Offshoots": 122278
+    },
+    "1921": {
+      "East Asia": 546530,
+      "Eastern Europe": 229374,
+      "Latin America": 88875,
+      "South and South East Asia": 406385,
+      "Western Europe": 258848,
+      "Western Offshoots": 124728
+    },
+    "1922": {
+      "East Asia": 549239,
+      "Eastern Europe": 230259,
+      "Latin America": 90602,
+      "South and South East Asia": 410817,
+      "Western Europe": 260647,
+      "Western Offshoots": 126521
+    },
+    "1923": {
+      "East Asia": 551983,
+      "Eastern Europe": 232232,
+      "Latin America": 92407,
+      "Middle East and North Africa": 13877,
+      "South and South East Asia": 415394,
+      "Western Europe": 262857,
+      "Western Offshoots": 128666
+    },
+    "1924": {
+      "East Asia": 554753,
+      "Eastern Europe": 235846,
+      "Latin America": 94258,
+      "Middle East and North Africa": 13968,
+      "South and South East Asia": 419853,
+      "Western Europe": 264946,
+      "Western Offshoots": 131121
+    },
+    "1925": {
+      "East Asia": 557628,
+      "Eastern Europe": 240377,
+      "Latin America": 96101,
+      "Middle East and North Africa": 14059,
+      "South and South East Asia": 424473,
+      "Western Europe": 266771,
+      "Western Offshoots": 133158
+    },
+    "1926": {
+      "East Asia": 560552,
+      "Eastern Europe": 245107,
+      "Latin America": 97981,
+      "Middle East and North Africa": 14151,
+      "South and South East Asia": 429213,
+      "Western Europe": 268690,
+      "Western Offshoots": 135046
+    },
+    "1927": {
+      "East Asia": 563483,
+      "Eastern Europe": 249566,
+      "Latin America": 99847,
+      "Middle East and North Africa": 14250,
+      "South and South East Asia": 433943,
+      "Western Europe": 270327,
+      "Western Offshoots": 137032
+    },
+    "1928": {
+      "East Asia": 566430,
+      "Eastern Europe": 253696,
+      "Latin America": 101795,
+      "Middle East and North Africa": 14476,
+      "South and South East Asia": 438946,
+      "Western Europe": 272005,
+      "Western Offshoots": 138836
+    },
+    "1929": {
+      "East Asia": 569350,
+      "Eastern Europe": 257413,
+      "Latin America": 103719,
+      "Middle East and North Africa": 14705,
+      "South and South East Asia": 443991,
+      "Western Europe": 273583,
+      "Western Offshoots": 140417
+    },
+    "1930": {
+      "East Asia": 572377,
+      "Eastern Europe": 260586,
+      "Latin America": 105641,
+      "Middle East and North Africa": 14928,
+      "South and South East Asia": 449022,
+      "Western Europe": 275482,
+      "Western Offshoots": 142118
+    },
+    "1931": {
+      "East Asia": 577374,
+      "Eastern Europe": 263444,
+      "Latin America": 107604,
+      "Middle East and North Africa": 15174,
+      "South and South East Asia": 455611,
+      "Western Europe": 277337,
+      "Western Offshoots": 143331
+    },
+    "1932": {
+      "East Asia": 582421,
+      "Eastern Europe": 265304,
+      "Latin America": 109541,
+      "Middle East and North Africa": 15414,
+      "South and South East Asia": 462544,
+      "Western Europe": 278918,
+      "Western Offshoots": 144336
+    },
+    "1933": {
+      "East Asia": 587476,
+      "Eastern Europe": 266903,
+      "Latin America": 111515,
+      "Middle East and North Africa": 15658,
+      "South and South East Asia": 469500,
+      "Western Europe": 280459,
+      "Western Offshoots": 145270
+    },
+    "1934": {
+      "East Asia": 591399,
+      "Eastern Europe": 268929,
+      "Latin America": 113471,
+      "Middle East and North Africa": 15906,
+      "South and South East Asia": 476602,
+      "Western Europe": 282067,
+      "Western Offshoots": 146242
+    },
+    "1935": {
+      "East Asia": 595566,
+      "Eastern Europe": 271021,
+      "Latin America": 115502,
+      "Middle East and North Africa": 16158,
+      "South and South East Asia": 483879,
+      "Western Europe": 283707,
+      "Western Offshoots": 147289
+    },
+    "1936": {
+      "East Asia": 599422,
+      "Eastern Europe": 273796,
+      "Latin America": 117482,
+      "Middle East and North Africa": 16434,
+      "South and South East Asia": 491332,
+      "Western Europe": 285301,
+      "Western Offshoots": 148280
+    },
+    "1937": {
+      "East Asia": 603721,
+      "Eastern Europe": 277791,
+      "Latin America": 119592,
+      "Middle East and North Africa": 16725,
+      "South and South East Asia": 498969,
+      "Western Europe": 286928,
+      "Western Offshoots": 149233
+    },
+    "1938": {
+      "East Asia": 607429,
+      "Eastern Europe": 282619,
+      "Latin America": 121729,
+      "Middle East and North Africa": 17016,
+      "South and South East Asia": 506605,
+      "Western Europe": 288866,
+      "Western Offshoots": 150436
+    },
+    "1939": {
+      "East Asia": 611110,
+      "Eastern Europe": 287394,
+      "Latin America": 124063,
+      "Middle East and North Africa": 17517,
+      "South and South East Asia": 514330,
+      "Western Europe": 291034,
+      "Western Offshoots": 151707
+    },
+    "1940": {
+      "East Asia": 614748,
+      "Eastern Europe": 289952,
+      "Latin America": 126411,
+      "Middle East and North Africa": 17821,
+      "South and South East Asia": 522187,
+      "Western Europe": 292087,
+      "Western Offshoots": 153003
+    },
+    "1941": {
+      "East Asia": 618794,
+      "Eastern Europe": 47604,
+      "Latin America": 129165,
+      "Middle East and North Africa": 18011,
+      "South and South East Asia": 529293,
+      "Western Europe": 292070,
+      "Western Offshoots": 154480
+    },
+    "1942": {
+      "East Asia": 621558,
+      "Eastern Europe": 47700,
+      "Latin America": 132032,
+      "Middle East and North Africa": 18203,
+      "South and South East Asia": 534824,
+      "Western Europe": 293358,
+      "Western Offshoots": 156167
+    },
+    "1943": {
+      "East Asia": 625690,
+      "Eastern Europe": 47767,
+      "Latin America": 134874,
+      "Middle East and North Africa": 18396,
+      "South and South East Asia": 541363,
+      "Western Europe": 293571,
+      "Western Offshoots": 158256
+    },
+    "1944": {
+      "East Asia": 629828,
+      "Eastern Europe": 48043,
+      "Latin America": 137811,
+      "Middle East and North Africa": 18592,
+      "South and South East Asia": 547201,
+      "Western Europe": 293877,
+      "Western Offshoots": 160168
+    },
+    "1945": {
+      "East Asia": 632888,
+      "Eastern Europe": 47185,
+      "Latin America": 141206,
+      "Middle East and North Africa": 18790,
+      "South and South East Asia": 553086,
+      "Western Europe": 292779,
+      "Western Offshoots": 161955
+    },
+    "1946": {
+      "East Asia": 639343,
+      "Eastern Europe": 243942,
+      "Latin America": 144420,
+      "Middle East and North Africa": 19235,
+      "South and South East Asia": 559789,
+      "Western Europe": 292418,
+      "Western Offshoots": 163807
+    },
+    "1947": {
+      "East Asia": 644184,
+      "Eastern Europe": 258661,
+      "Latin America": 147773,
+      "Middle East and North Africa": 19690,
+      "South and South East Asia": 493763,
+      "Western Europe": 295790,
+      "Western Offshoots": 166964
+    },
+    "1948": {
+      "East Asia": 649550,
+      "Eastern Europe": 260609,
+      "Latin America": 151289,
+      "Middle East and North Africa": 20156,
+      "South and South East Asia": 500288,
+      "Western Europe": 299308,
+      "Western Offshoots": 169931
+    },
+    "1949": {
+      "East Asia": 655031,
+      "Eastern Europe": 264027,
+      "Latin America": 154968,
+      "Middle East and North Africa": 20634,
+      "South and South East Asia": 508131,
+      "Western Europe": 301868,
+      "Western Offshoots": 173029
+    },
+    "1950": {
+      "East Asia": 670352.9912,
+      "Eastern Europe": 475205.331,
+      "Latin America": 164217.238,
+      "Middle East and North Africa": 103759.518,
+      "South and South East Asia": 651979.5819,
+      "Sub Saharan Africa": 178875.2073,
+      "Western Europe": 304850.851,
+      "Western Offshoots": 176458.069
+    },
+    "1951": {
+      "East Asia": 682501.4187,
+      "Eastern Europe": 482854.864,
+      "Latin America": 168656.104,
+      "Middle East and North Africa": 106503.195,
+      "South and South East Asia": 663381.2546,
+      "Sub Saharan Africa": 182471.9035,
+      "Western Europe": 306939.471,
+      "Western Offshoots": 179666.664
+    },
+    "1952": {
+      "East Asia": 695357.691,
+      "Eastern Europe": 490666.983,
+      "Latin America": 173182.326,
+      "Middle East and North Africa": 109277.321,
+      "South and South East Asia": 676165.6221,
+      "Sub Saharan Africa": 186216.7235,
+      "Western Europe": 308683.515,
+      "Western Offshoots": 183024.59
+    },
+    "1953": {
+      "East Asia": 709260.6268,
+      "Eastern Europe": 498499.259,
+      "Latin America": 177833.987,
+      "Middle East and North Africa": 112041.354,
+      "South and South East Asia": 689197.8493,
+      "Sub Saharan Africa": 190075.0296,
+      "Western Europe": 310634.213,
+      "Western Offshoots": 186272.69
+    },
+    "1954": {
+      "East Asia": 724889.9671,
+      "Eastern Europe": 506507.355,
+      "Latin America": 182691.625,
+      "Middle East and North Africa": 114733.465,
+      "South and South East Asia": 702582.8782,
+      "Sub Saharan Africa": 194300.5536,
+      "Western Europe": 312558.213,
+      "Western Offshoots": 189819.041
+    },
+    "1955": {
+      "East Asia": 740332.2937,
+      "Eastern Europe": 515099.6,
+      "Latin America": 187761.277,
+      "Middle East and North Africa": 117706.584,
+      "South and South East Asia": 716231.9332,
+      "Sub Saharan Africa": 198657.0816,
+      "Western Europe": 314572.329,
+      "Western Offshoots": 193394.611
+    },
+    "1956": {
+      "East Asia": 755320.9168,
+      "Eastern Europe": 523638.706,
+      "Latin America": 192980.129,
+      "Middle East and North Africa": 120804.036,
+      "South and South East Asia": 731011.0317,
+      "Sub Saharan Africa": 203195.244,
+      "Western Europe": 316741.683,
+      "Western Offshoots": 197026.982
+    },
+    "1957": {
+      "East Asia": 773382.4902,
+      "Eastern Europe": 531999.98,
+      "Latin America": 198394.099,
+      "Middle East and North Africa": 124049.92,
+      "South and South East Asia": 746061.5811,
+      "Sub Saharan Africa": 207879.6467,
+      "Western Europe": 318984.236,
+      "Western Offshoots": 200936.13
+    },
+    "1958": {
+      "East Asia": 791474.2176,
+      "Eastern Europe": 540567.502,
+      "Latin America": 204023.442,
+      "Middle East and North Africa": 127418.803,
+      "South and South East Asia": 762510.3078,
+      "Sub Saharan Africa": 212739.2083,
+      "Western Europe": 321323.423,
+      "Western Offshoots": 204540.804
+    },
+    "1959": {
+      "East Asia": 806773.8831,
+      "Eastern Europe": 549356.999,
+      "Latin America": 209859.374,
+      "Middle East and North Africa": 130893.77,
+      "South and South East Asia": 778317.5427,
+      "Sub Saharan Africa": 217781.0327,
+      "Western Europe": 323840.654,
+      "Western Offshoots": 208164.885
+    },
+    "1960": {
+      "East Asia": 810279.5676,
+      "Eastern Europe": 558361.834,
+      "Latin America": 215894.086,
+      "Middle East and North Africa": 134461.924,
+      "South and South East Asia": 794354.859,
+      "Sub Saharan Africa": 223033.5069,
+      "Western Europe": 326376.083,
+      "Western Offshoots": 211670.784
+    },
+    "1961": {
+      "East Asia": 805956.772,
+      "Eastern Europe": 567389.908,
+      "Latin America": 221987.276,
+      "Middle East and North Africa": 138036.088,
+      "South and South East Asia": 812793.617,
+      "Sub Saharan Africa": 228258.5357,
+      "Western Europe": 329160.829,
+      "Western Offshoots": 215357.241
+    },
+    "1962": {
+      "East Asia": 813832.8166,
+      "Eastern Europe": 575730.303,
+      "Latin America": 228252.676,
+      "Middle East and North Africa": 141314.524,
+      "South and South East Asia": 831770.7106,
+      "Sub Saharan Africa": 233961.2295,
+      "Western Europe": 332410.439,
+      "Western Offshoots": 218807.367
+    },
+    "1963": {
+      "East Asia": 832933.6012,
+      "Eastern Europe": 583596.556,
+      "Latin America": 234714.631,
+      "Middle East and North Africa": 145026.484,
+      "South and South East Asia": 851246.159,
+      "Sub Saharan Africa": 239928.4408,
+      "Western Europe": 335332.621,
+      "Western Offshoots": 222127.674
+    },
+    "1964": {
+      "East Asia": 851531.1671,
+      "Eastern Europe": 590938.734,
+      "Latin America": 241372.512,
+      "Middle East and North Africa": 148952.683,
+      "South and South East Asia": 870724.3952,
+      "Sub Saharan Africa": 245954.0755,
+      "Western Europe": 338209.416,
+      "Western Offshoots": 225410.307
+    },
+    "1965": {
+      "East Asia": 870945.554,
+      "Eastern Europe": 597642.193,
+      "Latin America": 248117.126,
+      "Middle East and North Africa": 152987.465,
+      "South and South East Asia": 891130.4033,
+      "Sub Saharan Africa": 252236.2912,
+      "Western Europe": 340993.571,
+      "Western Offshoots": 228453.888
+    },
+    "1966": {
+      "East Asia": 893624.4142,
+      "Eastern Europe": 603922.502,
+      "Latin America": 254928.069,
+      "Middle East and North Africa": 157088.523,
+      "South and South East Asia": 910967.3788,
+      "Sub Saharan Africa": 258776.7406,
+      "Western Europe": 343560.849,
+      "Western Offshoots": 231351.129
+    },
+    "1967": {
+      "East Asia": 915297.9579,
+      "Eastern Europe": 609884.867,
+      "Latin America": 261815.677,
+      "Middle East and North Africa": 161233.838,
+      "South and South East Asia": 931991.0303,
+      "Sub Saharan Africa": 265627.3187,
+      "Western Europe": 345758.513,
+      "Western Offshoots": 234132.181
+    },
+    "1968": {
+      "East Asia": 938053.9962,
+      "Eastern Europe": 615841.259,
+      "Latin America": 268824.574,
+      "Middle East and North Africa": 165321.505,
+      "South and South East Asia": 954168.5698,
+      "Sub Saharan Africa": 272741.3674,
+      "Western Europe": 347769.618,
+      "Western Offshoots": 236709.76
+    },
+    "1969": {
+      "East Asia": 962284.6456,
+      "Eastern Europe": 621306.76,
+      "Latin America": 275981.258,
+      "Middle East and North Africa": 169590.887,
+      "South and South East Asia": 975520.8759,
+      "Sub Saharan Africa": 280081.7539,
+      "Western Europe": 350088.909,
+      "Western Offshoots": 239292.957
+    },
+    "1970": {
+      "East Asia": 987317.0329,
+      "Eastern Europe": 626731.835,
+      "Latin America": 283244.347,
+      "Middle East and North Africa": 173936.19,
+      "South and South East Asia": 998481.9081,
+      "Sub Saharan Africa": 287210.3857,
+      "Western Europe": 352386.367,
+      "Western Offshoots": 242290.196
+    },
+    "1971": {
+      "East Asia": 1012960.0695,
+      "Eastern Europe": 632613.093,
+      "Latin America": 290574.048,
+      "Middle East and North Africa": 178491.793,
+      "South and South East Asia": 1022501.183,
+      "Sub Saharan Africa": 294993.6272,
+      "Western Europe": 354854.351,
+      "Western Offshoots": 245499.9
+    },
+    "1972": {
+      "East Asia": 1036793.7315,
+      "Eastern Europe": 638578.94,
+      "Latin America": 297997.386,
+      "Middle East and North Africa": 183225.355,
+      "South and South East Asia": 1046738.4017,
+      "Sub Saharan Africa": 302897.0541,
+      "Western Europe": 356998.428,
+      "Western Offshoots": 248286.6
+    },
+    "1973": {
+      "East Asia": 1059532.4086,
+      "Eastern Europe": 644377.261,
+      "Latin America": 305448.526,
+      "Middle East and North Africa": 188237.792,
+      "South and South East Asia": 1071438.6404,
+      "Sub Saharan Africa": 311164.7188,
+      "Western Europe": 358979.241,
+      "Western Offshoots": 250841.2
+    },
+    "1974": {
+      "East Asia": 1080743.5778,
+      "Eastern Europe": 650385.576,
+      "Latin America": 312541.702,
+      "Middle East and North Africa": 193446.404,
+      "South and South East Asia": 1096573.7238,
+      "Sub Saharan Africa": 319516.2025,
+      "Western Europe": 360618.655,
+      "Western Offshoots": 253386.2
+    },
+    "1975": {
+      "East Asia": 1099503.694,
+      "Eastern Europe": 656412.954,
+      "Latin America": 320088.244,
+      "Middle East and North Africa": 198849.444,
+      "South and South East Asia": 1121787.2661,
+      "Sub Saharan Africa": 327925.3042,
+      "Western Europe": 361929.763,
+      "Western Offshoots": 256071.4
+    },
+    "1976": {
+      "East Asia": 1116344.9807,
+      "Eastern Europe": 662382.749,
+      "Latin America": 327662.836,
+      "Middle East and North Africa": 204347.74,
+      "South and South East Asia": 1146201.1221,
+      "Sub Saharan Africa": 337105.3406,
+      "Western Europe": 362952.633,
+      "Western Offshoots": 258621.55
+    },
+    "1977": {
+      "East Asia": 1131510.729,
+      "Eastern Europe": 668310.298,
+      "Latin America": 335317.255,
+      "Middle East and North Africa": 210266.296,
+      "South and South East Asia": 1172622.0794,
+      "Sub Saharan Africa": 346646.5346,
+      "Western Europe": 364056.505,
+      "Western Offshoots": 261274.4
+    },
+    "1978": {
+      "East Asia": 1146591.7846,
+      "Eastern Europe": 674019.893,
+      "Latin America": 342985.381,
+      "Middle East and North Africa": 216616.888,
+      "South and South East Asia": 1199211.0955,
+      "Sub Saharan Africa": 356158.5397,
+      "Western Europe": 365157.236,
+      "Western Offshoots": 264035.7
+    },
+    "1979": {
+      "East Asia": 1161694.1854,
+      "Eastern Europe": 679575.683,
+      "Latin America": 350782.067,
+      "Middle East and North Africa": 223317.546,
+      "South and South East Asia": 1228520.2469,
+      "Sub Saharan Africa": 365902.088,
+      "Western Europe": 366305.133,
+      "Western Offshoots": 266918.35
+    },
+    "1980": {
+      "East Asia": 1176179.0689,
+      "Eastern Europe": 684769.856,
+      "Latin America": 358504.122,
+      "Middle East and North Africa": 230521.086,
+      "South and South East Asia": 1257116.217,
+      "Sub Saharan Africa": 375917.0455,
+      "Western Europe": 367662.923,
+      "Western Offshoots": 270105.813
+    },
+    "1981": {
+      "East Asia": 1190941.0784,
+      "Eastern Europe": 690011.994,
+      "Latin America": 366376.041,
+      "Middle East and North Africa": 238327.361,
+      "South and South East Asia": 1283007.5859,
+      "Sub Saharan Africa": 387423.9211,
+      "Western Europe": 368849.166,
+      "Western Offshoots": 272974.947
+    },
+    "1982": {
+      "East Asia": 1199435.7107,
+      "Eastern Europe": 695433.545,
+      "Latin America": 374653.885,
+      "Middle East and North Africa": 246130.784,
+      "South and South East Asia": 1311808.2002,
+      "Sub Saharan Africa": 399425.4723,
+      "Western Europe": 369570.956,
+      "Western Offshoots": 275768.735
+    },
+    "1983": {
+      "East Asia": 1224459.8265,
+      "Eastern Europe": 700860.351,
+      "Latin America": 382890.454,
+      "Middle East and North Africa": 254174.725,
+      "South and South East Asia": 1340305.7472,
+      "Sub Saharan Africa": 411661.9538,
+      "Western Europe": 370122.427,
+      "Western Offshoots": 278369.507
+    },
+    "1984": {
+      "East Asia": 1239885.1871,
+      "Eastern Europe": 706754.652,
+      "Latin America": 390956.405,
+      "Middle East and North Africa": 262599.446,
+      "South and South East Asia": 1370036.1725,
+      "Sub Saharan Africa": 423220.0987,
+      "Western Europe": 370711.819,
+      "Western Offshoots": 280858.092
+    },
+    "1985": {
+      "East Asia": 1255829.4554,
+      "Eastern Europe": 712465.086,
+      "Latin America": 398961.287,
+      "Middle East and North Africa": 270956.924,
+      "South and South East Asia": 1400157.869,
+      "Sub Saharan Africa": 434980.2409,
+      "Western Europe": 371368.29,
+      "Western Offshoots": 283426.883
+    },
+    "1986": {
+      "East Asia": 1273300.8552,
+      "Eastern Europe": 718118.428,
+      "Latin America": 407206.964,
+      "Middle East and North Africa": 279272.564,
+      "South and South East Asia": 1430087.874,
+      "Sub Saharan Africa": 447017.5496,
+      "Western Europe": 372213.683,
+      "Western Offshoots": 286095.555
+    },
+    "1987": {
+      "East Asia": 1292159.8883,
+      "Eastern Europe": 723590.452,
+      "Latin America": 415611.712,
+      "Middle East and North Africa": 286761.219,
+      "South and South East Asia": 1461340.571,
+      "Sub Saharan Africa": 459483.3199,
+      "Western Europe": 373101.608,
+      "Western Offshoots": 288842.233
+    },
+    "1988": {
+      "East Asia": 1311313.6024,
+      "Eastern Europe": 728539.278,
+      "Latin America": 424030.101,
+      "Middle East and North Africa": 294341.059,
+      "South and South East Asia": 1492954.6024,
+      "Sub Saharan Africa": 472317.6582,
+      "Western Europe": 374313.597,
+      "Western Offshoots": 291677.214
+    },
+    "1989": {
+      "East Asia": 1329859.364,
+      "Eastern Europe": 731850.322,
+      "Latin America": 432273.995,
+      "Middle East and North Africa": 302055.875,
+      "South and South East Asia": 1525187.8103,
+      "Sub Saharan Africa": 485698.9817,
+      "Western Europe": 376187.534,
+      "Western Offshoots": 294779.997
+    },
+    "1990": {
+      "East Asia": 1347902.358,
+      "Eastern Europe": 736220.147,
+      "Latin America": 440329.389,
+      "Middle East and North Africa": 310610.26,
+      "South and South East Asia": 1556988.928,
+      "Sub Saharan Africa": 499494.4121,
+      "Western Europe": 378101.43,
+      "Western Offshoots": 298292.494
+    },
+    "1991": {
+      "East Asia": 1364235.5,
+      "Eastern Europe": 739178.802,
+      "Latin America": 448859.863,
+      "Middle East and North Africa": 316773.96,
+      "South and South East Asia": 1590017.72,
+      "Sub Saharan Africa": 515022.002,
+      "Western Europe": 379860.98,
+      "Western Offshoots": 301840.94
+    },
+    "1992": {
+      "East Asia": 1379149.15,
+      "Eastern Europe": 740621.171,
+      "Latin America": 457324.81,
+      "Middle East and North Africa": 324390.86,
+      "South and South East Asia": 1622694.98,
+      "Sub Saharan Africa": 530209.489,
+      "Western Europe": 381475.81,
+      "Western Offshoots": 305939.29
+    },
+    "1993": {
+      "East Asia": 1394009.57,
+      "Eastern Europe": 740378.386,
+      "Latin America": 460221.132,
+      "Middle East and North Africa": 330569.95,
+      "South and South East Asia": 1656148.68,
+      "Sub Saharan Africa": 544736.005,
+      "Western Europe": 382905,
+      "Western Offshoots": 309857.63
+    },
+    "1994": {
+      "East Asia": 1408498.23,
+      "Eastern Europe": 739784.965,
+      "Latin America": 468010.385,
+      "Middle East and North Africa": 336533.45,
+      "South and South East Asia": 1689976.4,
+      "Sub Saharan Africa": 558091.402,
+      "Western Europe": 383977.51,
+      "Western Offshoots": 313601.08
+    },
+    "1995": {
+      "East Asia": 1422460.29,
+      "Eastern Europe": 739253.861,
+      "Latin America": 475712.36,
+      "Middle East and North Africa": 342868.25,
+      "South and South East Asia": 1723557.4,
+      "Sub Saharan Africa": 573212.938,
+      "Western Europe": 384944.05,
+      "Western Offshoots": 317310.81
+    },
+    "1996": {
+      "East Asia": 1436419.43,
+      "Eastern Europe": 738533.67,
+      "Latin America": 483297.778,
+      "Middle East and North Africa": 349085.38,
+      "South and South East Asia": 1757208.64,
+      "Sub Saharan Africa": 588729.229,
+      "Western Europe": 385970.92,
+      "Western Offshoots": 321011.71
+    },
+    "1997": {
+      "East Asia": 1449781.85,
+      "Eastern Europe": 737750.896,
+      "Latin America": 490811.458,
+      "Middle East and North Africa": 355697.95,
+      "South and South East Asia": 1790508.46,
+      "Sub Saharan Africa": 603918.423,
+      "Western Europe": 386921.53,
+      "Western Offshoots": 324803.78
+    },
+    "1998": {
+      "East Asia": 1462011.53,
+      "Eastern Europe": 737006.952,
+      "Latin America": 498234.744,
+      "Middle East and North Africa": 362277.27,
+      "South and South East Asia": 1823590.02,
+      "Sub Saharan Africa": 619399.76,
+      "Western Europe": 387803.68,
+      "Western Offshoots": 328474.39
+    },
+    "1999": {
+      "East Asia": 1473101.65,
+      "Eastern Europe": 735835.369,
+      "Latin America": 505522.437,
+      "Middle East and North Africa": 368925.94,
+      "South and South East Asia": 1856559.31,
+      "Sub Saharan Africa": 635794.386,
+      "Western Europe": 388865.35,
+      "Western Offshoots": 332132.12
+    },
+    "2000": {
+      "East Asia": 1483663.98,
+      "Eastern Europe": 734367.975,
+      "Latin America": 512688.418,
+      "Middle East and North Africa": 375703.93,
+      "South and South East Asia": 1889881.29,
+      "Sub Saharan Africa": 652476.09,
+      "Western Europe": 390173.3,
+      "Western Offshoots": 335777.49
+    },
+    "2001": {
+      "East Asia": 1493500.72,
+      "Eastern Europe": 732442.764,
+      "Latin America": 519653.722,
+      "Middle East and North Africa": 382677.43,
+      "South and South East Asia": 1923236.98,
+      "Sub Saharan Africa": 669767.227,
+      "Western Europe": 391655.19,
+      "Western Offshoots": 339199.69
+    },
+    "2002": {
+      "East Asia": 1502582.51,
+      "Eastern Europe": 730961.701,
+      "Latin America": 526555.339,
+      "Middle East and North Africa": 389583.45,
+      "South and South East Asia": 1956632.44,
+      "Sub Saharan Africa": 687683.735,
+      "Western Europe": 393685.51,
+      "Western Offshoots": 342486.54
+    },
+    "2003": {
+      "East Asia": 1510999.27,
+      "Eastern Europe": 729697.634,
+      "Latin America": 533409.678,
+      "Middle East and North Africa": 397123.85,
+      "South and South East Asia": 1989373.13,
+      "Sub Saharan Africa": 705990.57,
+      "Western Europe": 395884.98,
+      "Western Offshoots": 345554.38
+    },
+    "2004": {
+      "East Asia": 1519130.36,
+      "Eastern Europe": 728772.591,
+      "Latin America": 540185.907,
+      "Middle East and North Africa": 404333.7,
+      "South and South East Asia": 2021899.3,
+      "Sub Saharan Africa": 724785.547,
+      "Western Europe": 398085.88,
+      "Western Offshoots": 348816.8
+    },
+    "2005": {
+      "East Asia": 1527131.82,
+      "Eastern Europe": 728080.711,
+      "Latin America": 546897.472,
+      "Middle East and North Africa": 412012.14,
+      "South and South East Asia": 2053285.76,
+      "Sub Saharan Africa": 744166.626,
+      "Western Europe": 400500.97,
+      "Western Offshoots": 352122.8
+    },
+    "2006": {
+      "East Asia": 1534613.59,
+      "Eastern Europe": 727629.652,
+      "Latin America": 553472.726,
+      "Middle East and North Africa": 420326.96,
+      "South and South East Asia": 2084811.93,
+      "Sub Saharan Africa": 764346.064,
+      "Western Europe": 402615,
+      "Western Offshoots": 355636.12
+    },
+    "2007": {
+      "East Asia": 1542050.67,
+      "Eastern Europe": 727556.775,
+      "Latin America": 560106.098,
+      "Middle East and North Africa": 429470.01,
+      "South and South East Asia": 2115526.49,
+      "Sub Saharan Africa": 785367.279,
+      "Western Europe": 405119.08,
+      "Western Offshoots": 359219.39
+    },
+    "2008": {
+      "East Asia": 1549424.47,
+      "Eastern Europe": 728035.64,
+      "Latin America": 566776.834,
+      "Middle East and North Africa": 439356.92,
+      "South and South East Asia": 2145709.25,
+      "Sub Saharan Africa": 807029.097,
+      "Western Europe": 407571,
+      "Western Offshoots": 362896.81
+    },
+    "2009": {
+      "East Asia": 1556332.7,
+      "Eastern Europe": 728591.438,
+      "Latin America": 573306.724,
+      "Middle East and North Africa": 448850.19,
+      "South and South East Asia": 2175933.96,
+      "Sub Saharan Africa": 829519.725,
+      "Western Europe": 409355.16,
+      "Western Offshoots": 366445.09
+    },
+    "2010": {
+      "East Asia": 1563198.33,
+      "Eastern Europe": 729588.183,
+      "Latin America": 579689.253,
+      "Middle East and North Africa": 457893.81,
+      "South and South East Asia": 2206171.09,
+      "Sub Saharan Africa": 852582.679,
+      "Western Europe": 410936.53,
+      "Western Offshoots": 369760.81
+    },
+    "2011": {
+      "East Asia": 1571789.92,
+      "Eastern Europe": 730317.533,
+      "Latin America": 585787.603,
+      "Middle East and North Africa": 466682.93,
+      "South and South East Asia": 2236226.86,
+      "Sub Saharan Africa": 876331.084,
+      "Western Europe": 412662.24,
+      "Western Offshoots": 372688.74
+    },
+    "2012": {
+      "East Asia": 1582048.86,
+      "Eastern Europe": 731747.519,
+      "Latin America": 591864.011,
+      "Middle East and North Africa": 475203.84,
+      "South and South East Asia": 2265953.9,
+      "Sub Saharan Africa": 900722.825,
+      "Western Europe": 414122.04,
+      "Western Offshoots": 375776.47
+    },
+    "2013": {
+      "East Asia": 1590274.45,
+      "Eastern Europe": 733278.032,
+      "Latin America": 597853.957,
+      "Middle East and North Africa": 484505.27,
+      "South and South East Asia": 2295654.83,
+      "Sub Saharan Africa": 925644.229,
+      "Western Europe": 415375.72,
+      "Western Offshoots": 378764.94
+    },
+    "2014": {
+      "East Asia": 1599895.41,
+      "Eastern Europe": 738721.656,
+      "Latin America": 604025.048,
+      "Middle East and North Africa": 493935.39,
+      "South and South East Asia": 2325143.03,
+      "Sub Saharan Africa": 951419.078,
+      "Western Europe": 416811.9,
+      "Western Offshoots": 381873.45
+    },
+    "2015": {
+      "East Asia": 1607014.55,
+      "Eastern Europe": 739448.872,
+      "Latin America": 609877.503,
+      "Middle East and North Africa": 502628.11,
+      "South and South East Asia": 2354315.39,
+      "Sub Saharan Africa": 977663.989,
+      "Western Europe": 418652.45,
+      "Western Offshoots": 384928.47
+    },
+    "2016": {
+      "East Asia": 1616265.18,
+      "Eastern Europe": 740645.005,
+      "Latin America": 613879.705,
+      "Middle East and North Africa": 511080.46,
+      "South and South East Asia": 2382946.81,
+      "Sub Saharan Africa": 1004367.691,
+      "Western Europe": 420617.31,
+      "Western Offshoots": 388147.27
+    },
+    "2017": {
+      "East Asia": 1624145.76,
+      "Eastern Europe": 741448.6236,
+      "Latin America": 619478.715,
+      "Middle East and North Africa": 519553.4503,
+      "South and South East Asia": 2411271.927,
+      "Sub Saharan Africa": 1032020.598,
+      "Western Europe": 422118.87,
+      "Western Offshoots": 391139.62
+    },
+    "2018": {
+      "East Asia": 1629583.325,
+      "Eastern Europe": 742411.4242,
+      "Latin America": 625013.87,
+      "Middle East and North Africa": 528316.0698,
+      "South and South East Asia": 2439639.853,
+      "Sub Saharan Africa": 1059933.536,
+      "Western Europe": 423675.74,
+      "Western Offshoots": 393841.23
+    },
+    "2019": {
+      "East Asia": 1634305.7811,
+      "Eastern Europe": 743461.8947,
+      "Latin America": 631155.848,
+      "Middle East and North Africa": 537533.7567,
+      "South and South East Asia": 2468025.4152,
+      "Sub Saharan Africa": 1088045.9411,
+      "Western Europe": 425309,
+      "Western Offshoots": 396343.35
+    },
+    "2020": {
+      "East Asia": 1636037.3539,
+      "Eastern Europe": 743781.2231,
+      "Latin America": 637531.6692,
+      "Middle East and North Africa": 546020.8377,
+      "South and South East Asia": 2496800.3781,
+      "Sub Saharan Africa": 1116788.8464,
+      "Western Europe": 426314.28,
+      "Western Offshoots": 400373.93
+    },
+    "2021": {
+      "East Asia": 1636261.2081,
+      "Eastern Europe": 742741.1348,
+      "Latin America": 643143.0036,
+      "Middle East and North Africa": 552751.3307,
+      "South and South East Asia": 2523021.7091,
+      "Sub Saharan Africa": 1145655.3817,
+      "Western Europe": 426860.71,
+      "Western Offshoots": 401177.34
+    },
+    "2022": {
+      "East Asia": 1634861.5982,
+      "Eastern Europe": 738564.5352,
+      "Latin America": 647191.2028,
+      "Middle East and North Africa": 560364.4261,
+      "South and South East Asia": 2545687.1027,
+      "Sub Saharan Africa": 1174709.2794,
+      "Western Europe": 428952.51,
+      "Western Offshoots": 403043.53
+    }
+  }
+}
