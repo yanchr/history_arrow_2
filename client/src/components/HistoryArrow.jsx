@@ -44,6 +44,12 @@ const DESKTOP_SPAN_LANE_GAP = 20
 const MOBILE_SPAN_LANE_GAP = 16
 const DESKTOP_POINT_LANE_GAP = 20
 const MOBILE_POINT_LANE_GAP = 14
+const GEO_MAP_MIN_MA = 0
+const GEO_MAP_MAX_MA = 530
+const GEO_MAP_FRAME_COUNT = 531
+const GEO_MAP_VIDEO_FPS = 30
+const GEO_MAP_VIDEO_DURATION_SECONDS = (GEO_MAP_FRAME_COUNT - 1) / GEO_MAP_VIDEO_FPS
+const GEO_MAP_VIDEO_FRAME_TIME = 1 / GEO_MAP_VIDEO_FPS
 
 const estimateLabelWidthPx = (title, maxWidthPx) => {
   const safeTitle = typeof title === 'string' ? title : ''
@@ -124,8 +130,10 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   gameGhostEvent = null,
   gameGhostColor = null,
   gameGuessMarkers = [],
+  gameActualMarker = null,
   onGameGuessMove,
   onGameGuessPlace,
+  onTimelineClick,
   gameReveal = null
 }, ref) {
   const [hoveredEvent, setHoveredEvent] = useState(null)
@@ -136,6 +144,11 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   const [centerInputValue, setCenterInputValue] = useState('')
   const [centerInputError, setCenterInputError] = useState('')
   const [manualCenterLabel, setManualCenterLabel] = useState('')
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false)
+  const [isHeaderExpanded, setIsHeaderExpanded] = useState(true)
+  const [mapMiniHover, setMapMiniHover] = useState({ active: false, percentage: 0 })
+  const [inlineVideoReady, setInlineVideoReady] = useState(false)
+  const [modalVideoReady, setModalVideoReady] = useState(false)
   // View state: years ago for the visible range
   // viewStart = closer to present (smaller years ago)
   // viewEnd = further in past (larger years ago)
@@ -143,6 +156,8 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   const [viewEnd, setViewEnd] = useState(CURRENT_YEAR) // Default to year 0 (2026 years ago)
   const timelineRef = useRef(null)
   const eventsLayerRef = useRef(null)
+  const inlineMapVideoRef = useRef(null)
+  const modalMapVideoRef = useRef(null)
   const hiddenEventIdSet = useMemo(() => new Set(hiddenEventIds), [hiddenEventIds])
 
   const centerViewOnEvent = useCallback((event) => {
@@ -182,7 +197,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
       5,
       eventHalfDuration,
       farthestGuessOffset
-    ) * 1.08
+    ) * 1.2
 
     const proposedStart = centerYearsAgo - halfSpan
     const proposedEnd = centerYearsAgo + halfSpan
@@ -583,7 +598,10 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     if (!timelineHover.active) return
 
     const yearsAgo = linearPositionToYear(timelineHover.percentage, viewStart, viewEnd)
-    setTimelineHover(prev => ({ ...prev, yearsAgo }))
+    setTimelineHover(prev => {
+      if (Math.abs(prev.yearsAgo - yearsAgo) < 1e-6) return prev
+      return { ...prev, yearsAgo }
+    })
     onGameGuessMove?.({ percentage: timelineHover.percentage, yearsAgo })
   }, [timelineHover.active, timelineHover.percentage, viewStart, viewEnd, onGameGuessMove])
 
@@ -592,15 +610,16 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   }, [])
 
   const handleTimelineClick = useCallback(() => {
-    if (!timelineHover.active) return
+    if (timelineHover.active) {
+      const guessPercentage = yearToLinearPosition(timelineHover.yearsAgo, viewStart, viewEnd)
 
-    const guessPercentage = yearToLinearPosition(timelineHover.yearsAgo, viewStart, viewEnd)
-
-    onGameGuessPlace?.({
-      percentage: guessPercentage,
-      yearsAgo: timelineHover.yearsAgo
-    })
-  }, [timelineHover, onGameGuessPlace, viewStart, viewEnd])
+      onGameGuessPlace?.({
+        percentage: guessPercentage,
+        yearsAgo: timelineHover.yearsAgo
+      })
+    }
+    onTimelineClick?.()
+  }, [timelineHover, onGameGuessPlace, onTimelineClick, viewStart, viewEnd])
 
   const formatHoverTime = (yearsAgo) => {
     if (yearsAgo <= CURRENT_YEAR) {
@@ -699,6 +718,98 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     return events.filter(event => !hiddenEventIdSet.has(event.id))
   }, [events, hiddenEventIdSet])
 
+  const mapYearsAgo = useMemo(() => {
+    if (mapMiniHover.active) {
+      return linearPositionToYear(mapMiniHover.percentage, GEO_MAP_MIN_MA * 1e6, GEO_MAP_MAX_MA * 1e6)
+    }
+    return timelineHover.active
+      ? timelineHover.yearsAgo
+      : (viewStart + viewEnd) / 2
+  }, [mapMiniHover.active, mapMiniHover.percentage, timelineHover.active, timelineHover.yearsAgo, viewStart, viewEnd])
+
+  const mapFrameMa = useMemo(() => {
+    const rawFrame = mapYearsAgo / 1e6
+    return Math.min(GEO_MAP_MAX_MA, Math.max(GEO_MAP_MIN_MA, rawFrame))
+  }, [mapYearsAgo])
+
+  const mapAssetBasePath = useMemo(() => {
+    const rawBasePath = import.meta.env.BASE_URL || '/'
+    return rawBasePath.endsWith('/') ? rawBasePath : `${rawBasePath}/`
+  }, [])
+
+  const mapVideoSrc = useMemo(() => {
+    return `${mapAssetBasePath}gp_plates_export/rev_seq_30fps_scrub.mp4`
+  }, [mapAssetBasePath])
+
+  const mapVideoTimeSeconds = useMemo(() => {
+    const frameIndex = GEO_MAP_MAX_MA - mapFrameMa
+    const normalizedFrame = Math.max(0, Math.min(GEO_MAP_FRAME_COUNT - 1, frameIndex))
+    return normalizedFrame / GEO_MAP_VIDEO_FPS
+  }, [mapFrameMa])
+
+  const syncVideoTime = useCallback((videoElement, targetSeconds) => {
+    if (!videoElement || !Number.isFinite(targetSeconds)) return
+    const safeDuration = Number.isFinite(videoElement.duration) && videoElement.duration > 0
+      ? videoElement.duration
+      : GEO_MAP_VIDEO_DURATION_SECONDS
+    const clampedTime = Math.max(0, Math.min(safeDuration, targetSeconds))
+    if (Math.abs(videoElement.currentTime - clampedTime) > GEO_MAP_VIDEO_FRAME_TIME * 0.25) {
+      videoElement.currentTime = clampedTime
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    if (!isHeaderExpanded && !isMapModalOpen) return undefined
+
+    const frameId = window.requestAnimationFrame(() => {
+      if (isHeaderExpanded) {
+        syncVideoTime(inlineMapVideoRef.current, mapVideoTimeSeconds)
+      }
+      if (isMapModalOpen) {
+        syncVideoTime(modalMapVideoRef.current, mapVideoTimeSeconds)
+      }
+    })
+
+    return () => window.cancelAnimationFrame(frameId)
+  }, [isHeaderExpanded, isMapModalOpen, mapVideoTimeSeconds, syncVideoTime])
+
+  useEffect(() => {
+    if (!isMapModalOpen || typeof window === 'undefined') return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        setIsMapModalOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleEscapeKey)
+    return () => {
+      window.removeEventListener('keydown', handleEscapeKey)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isMapModalOpen])
+
+  useEffect(() => {
+    if (isMapModalOpen) return
+    setMapMiniHover({ active: false, percentage: 0 })
+  }, [isMapModalOpen])
+
+  const handleMapMiniTimelineMove = useCallback((event) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    if (!rect.width) return
+    const x = event.clientX - rect.left
+    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100))
+    setMapMiniHover({ active: true, percentage })
+  }, [])
+
+  const handleMapMiniTimelineLeave = useCallback(() => {
+    setMapMiniHover((prev) => ({ ...prev, active: false }))
+  }, [])
+
   const ghostMarkerEvent = useMemo(() => {
     if (!ghostPlacement || !gameGhostEvent) return null
     return {
@@ -727,6 +838,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
 
         return {
           ...sourceEvent,
+          title: marker.displayTitle || sourceEvent.title,
           id: `persisted-guess-${marker.id}`,
           isSpan: placement.isSpan,
           startPos: placement.startPos,
@@ -742,67 +854,142 @@ const HistoryArrow = forwardRef(function HistoryArrow({
       .filter(Boolean)
   }, [gameGuessMarkers, gameGhostEvent, gameReveal, buildGhostPlacement])
 
+  const actualMarkerEvent = useMemo(() => {
+    if (!gameActualMarker) return null
+    const sourceEvent = gameActualMarker.event || gameReveal?.event || gameGhostEvent
+    if (!sourceEvent) return null
+
+    const startYearsAgo = eventToYearsAgo(sourceEvent)
+    const endYearsAgo = eventEndToYearsAgo(sourceEvent)
+    const isSpan = endYearsAgo !== null && endYearsAgo !== undefined
+    const startPos = yearToLinearPosition(startYearsAgo, viewStart, viewEnd)
+    const endPos = isSpan ? yearToLinearPosition(endYearsAgo, viewStart, viewEnd) : null
+
+    return {
+      ...sourceEvent,
+      title: gameActualMarker.displayTitle || sourceEvent.title,
+      id: `actual-marker-${gameActualMarker.id || sourceEvent.id}`,
+      isSpan,
+      startPos,
+      endPos,
+      spanLaneRing: 1,
+      spanLaneDirection: -1,
+      pointLaneRing: 1,
+      pointLaneDirection: -1,
+      _markerColor: gameActualMarker.color || null,
+      _overlayClass: gameActualMarker.overlayClass || 'game-overlay-actual'
+    }
+  }, [gameActualMarker, gameReveal, gameGhostEvent, viewStart, viewEnd])
+
   return (
     <div className="history-arrow-container">
-      <div className="timeline-header">
-        <div className="timeline-title-group">
-          <h3 className="timeline-title">{title}</h3>
-          {titleHint && (
-            <span className="timeline-title-hint">{titleHint}</span>
-          )}
-        </div>
-        <div className="timeline-actions">
-          <form className="center-input-form" onSubmit={handleCenterInputSubmit}>
-            <div className="center-input-row">
-              <select
-                className="center-input-type"
-                value={centerInputType}
-                onChange={(e) => {
-                  setCenterInputType(e.target.value)
-                  setCenterInputError('')
-                }}
+      <div className="timeline-header-panel">
+        <button
+          type="button"
+          className="timeline-header-toggle"
+          onClick={() => setIsHeaderExpanded((prev) => !prev)}
+          aria-expanded={isHeaderExpanded}
+          aria-controls="timeline-header-content"
+        >
+          <span>{isHeaderExpanded ? 'Hide timeline controls' : 'Show timeline controls'}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            {isHeaderExpanded ? <path d="M18 15l-6-6-6 6" /> : <path d="M6 9l6 6 6-6" />}
+          </svg>
+        </button>
+
+        {isHeaderExpanded && (
+          <div id="timeline-header-content" className="timeline-header has-inline-map">
+            <div className="inline-geological-map">
+              <button
+                type="button"
+                className="inline-geological-map-trigger"
+                onClick={() => setIsMapModalOpen(true)}
+                aria-label="Open geological map preview"
               >
-                <option value="date">Date</option>
-                <option value="astronomical">Astronomical year</option>
-              </select>
-              <input
-                className="center-input-field"
-                type={centerInputType === 'date' ? 'date' : 'text'}
-                value={centerInputValue}
-                onChange={(e) => {
-                  setCenterInputValue(e.target.value)
-                  setCenterInputError('')
-                }}
-                placeholder={centerInputType === 'date' ? '' : 'e.g. 66000000'}
-              />
-              <button type="submit" className="center-input-btn">
-                Center
+                <div className="inline-geological-map-viewport">
+                  {!inlineVideoReady && (
+                    <div className="inline-geological-map-fallback">Loading map...</div>
+                  )}
+                  <video
+                    ref={inlineMapVideoRef}
+                    className="inline-geological-map-video"
+                    src={mapVideoSrc}
+                    muted
+                    playsInline
+                    preload="auto"
+                    onLoadedData={() => {
+                      setInlineVideoReady(true)
+                      syncVideoTime(inlineMapVideoRef.current, mapVideoTimeSeconds)
+                    }}
+                    onError={() => setInlineVideoReady(false)}
+                  />
+                </div>
+                <div className="inline-geological-map-year">
+                  {formatHoverTime(mapYearsAgo)}
+                </div>
               </button>
             </div>
-            {centerInputError && <span className="center-input-error">{centerInputError}</span>}
-          </form>
-          {showRandomEventButton && (
-            <button className="random-event-btn" onClick={handleRandomEventSelect}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M4 8l4-4 4 4-4 4-4-4z" />
-                <path d="M12 16l4-4 4 4-4 4-4-4z" />
-                <path d="M9 15l6-6" />
-              </svg>
-              Random Event
-            </button>
-          )}
-          <button className="reset-view-btn" onClick={handleReset}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
-            Reset View
-          </button>
-        </div>
+
+            <div className="timeline-title-group">
+              <h3 className="timeline-title">{title}</h3>
+              {titleHint && (
+                <span className="timeline-title-hint">{titleHint}</span>
+              )}
+            </div>
+            <div className="timeline-actions">
+              <form className="center-input-form" onSubmit={handleCenterInputSubmit}>
+                <div className="center-input-row">
+                  <select
+                    className="center-input-type"
+                    value={centerInputType}
+                    onChange={(e) => {
+                      setCenterInputType(e.target.value)
+                      setCenterInputError('')
+                    }}
+                  >
+                    <option value="date">Date</option>
+                    <option value="astronomical">Astronomical year</option>
+                  </select>
+                  <input
+                    className="center-input-field"
+                    type={centerInputType === 'date' ? 'date' : 'text'}
+                    value={centerInputValue}
+                    onChange={(e) => {
+                      setCenterInputValue(e.target.value)
+                      setCenterInputError('')
+                    }}
+                    placeholder={centerInputType === 'date' ? '' : 'e.g. 66000000'}
+                  />
+                  <button type="submit" className="center-input-btn">
+                    Center
+                  </button>
+                </div>
+                {centerInputError && <span className="center-input-error">{centerInputError}</span>}
+              </form>
+              {showRandomEventButton && (
+                <button className="random-event-btn" onClick={handleRandomEventSelect}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 8l4-4 4 4-4 4-4-4z" />
+                    <path d="M12 16l4-4 4 4-4 4-4-4z" />
+                    <path d="M9 15l6-6" />
+                  </svg>
+                  Random Event
+                </button>
+              )}
+              <button className="reset-view-btn" onClick={handleReset}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                Reset View
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div 
-        className="timeline-wrapper" 
+        className="timeline-wrapper"
         ref={timelineRef}
         style={timelineLayoutStyle}
       >
@@ -909,6 +1096,21 @@ const HistoryArrow = forwardRef(function HistoryArrow({
                 markerColor={markerEvent._markerColor}
               />
             ))}
+            {actualMarkerEvent && (
+              <EventMarker
+                key={actualMarkerEvent.id}
+                event={actualMarkerEvent}
+                onHover={() => {}}
+                onClick={null}
+                isHovered
+                isSelected={false}
+                showLabel
+                disablePointerEvents
+                className={actualMarkerEvent._overlayClass}
+                labelColor={labelColorMap.get(actualMarkerEvent.label) || null}
+                markerColor={actualMarkerEvent._markerColor}
+              />
+            )}
           </div>
 
           {/* View range labels */}
@@ -960,17 +1162,74 @@ const HistoryArrow = forwardRef(function HistoryArrow({
         labelColorMap={labelColorMap}
       />
 
-      {/* Timeline Legend */}
-      <div className="timeline-legend">
-        <div className="legend-item">
-          <span className="legend-point" />
-          <span>Point Event</span>
-        </div>
-        <div className="legend-item">
-          <span className="legend-span" />
-          <span>Time Span</span>
-        </div>
-      </div>
+      {isMapModalOpen && (
+        <motion.div
+          className="geological-map-modal-backdrop"
+          onClick={() => setIsMapModalOpen(false)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          <motion.div
+            className="geological-map-modal"
+            onClick={(event) => event.stopPropagation()}
+            initial={{ opacity: 0, y: 18, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.18 }}
+          >
+            <button
+              type="button"
+              className="geological-map-modal-close"
+              onClick={() => setIsMapModalOpen(false)}
+              aria-label="Close geological map"
+            >
+              ×
+            </button>
+            <div className="geological-map-modal-viewport">
+              {!modalVideoReady && (
+                <div className="geological-map-modal-fallback">Loading map...</div>
+              )}
+              <video
+                ref={modalMapVideoRef}
+                className="geological-map-modal-video"
+                src={mapVideoSrc}
+                muted
+                playsInline
+                preload="auto"
+                onLoadedData={() => {
+                  setModalVideoReady(true)
+                  syncVideoTime(modalMapVideoRef.current, mapVideoTimeSeconds)
+                }}
+                onError={() => setModalVideoReady(false)}
+              />
+            </div>
+            <div className="geological-map-modal-year">
+              {formatHoverTime(mapYearsAgo)}
+            </div>
+            <div
+              className="inline-map-mini-timeline"
+              onMouseMove={handleMapMiniTimelineMove}
+              onMouseLeave={handleMapMiniTimelineLeave}
+              aria-label="Geological map mini timeline"
+            >
+              <div className="inline-map-mini-track">
+                <div className="inline-map-mini-body" />
+                <div className="inline-map-mini-head" />
+                <div
+                  className="inline-map-mini-hover"
+                  style={{ left: `${mapMiniHover.active ? mapMiniHover.percentage : (mapFrameMa / GEO_MAP_MAX_MA) * 100}%` }}
+                />
+              </div>
+              <div className="inline-map-mini-labels">
+                <span>530 Ma</span>
+                <span>0</span>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
     </div>
   )
 })

@@ -256,6 +256,7 @@
 .event-point.game-overlay-guess,
 .event-span.game-overlay-guess {
   opacity: 0.68;
+  z-index: 22;
 }
 
 .event-point.game-overlay-guess .point-inner {
@@ -289,6 +290,7 @@
 .event-point.game-overlay-actual,
 .event-span.game-overlay-actual {
   opacity: 1;
+  z-index: 28;
 }
 
 .event-point.game-overlay-actual .point-inner {
