@@ -11,6 +11,8 @@
 --   ALTER TABLE events ADD COLUMN IF NOT EXISTS attribution_text TEXT;
 --   ALTER TABLE events ADD COLUMN IF NOT EXISTS is_published BOOLEAN NOT NULL DEFAULT false;
 --   ALTER TABLE events ADD COLUMN IF NOT EXISTS license_type VARCHAR(80);
+-- Add optional YouTube link:
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS youtube_url TEXT;
 -- Backfill null booleans in existing data:
 --   UPDATE events SET is_published = false WHERE is_published IS NULL;
 -- Add label:
@@ -50,6 +52,7 @@ CREATE TABLE IF NOT EXISTS events (
   description TEXT,
   image_url TEXT,
   source_url TEXT,
+  youtube_url TEXT,
   attribution_text TEXT,
   is_published BOOLEAN NOT NULL DEFAULT false,
   license_type VARCHAR(80),

@@ -22,6 +22,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
     description: '',
     image_url: '',
     source_url: '',
+    youtube_url: '',
     attribution_text: '',
     is_published: false,
     license_type: '',
@@ -57,6 +58,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
           description: event.description || '',
           image_url: event.image_url || '',
           source_url: event.source_url || event.event_url || '',
+          youtube_url: event.youtube_url || '',
           attribution_text: event.attribution_text || '',
           is_published: Boolean(event.is_published),
           license_type: event.license_type || '',
@@ -76,6 +78,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
           description: event.description || '',
           image_url: event.image_url || '',
           source_url: event.source_url || event.event_url || '',
+          youtube_url: event.youtube_url || '',
           attribution_text: event.attribution_text || '',
           is_published: Boolean(event.is_published),
           license_type: event.license_type || '',
@@ -251,6 +254,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         description: formData.description,
         image_url: formData.image_url?.trim() || null,
         source_url: formData.source_url?.trim() || null,
+        youtube_url: formData.youtube_url?.trim() || null,
         attribution_text: formData.attribution_text?.trim() || null,
         is_published: Boolean(formData.is_published),
         license_type: formData.license_type?.trim() || null,
@@ -272,6 +276,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         description: formData.description,
         image_url: formData.image_url?.trim() || null,
         source_url: formData.source_url?.trim() || null,
+        youtube_url: formData.youtube_url?.trim() || null,
         attribution_text: formData.attribution_text?.trim() || null,
         is_published: Boolean(formData.is_published),
         license_type: formData.license_type?.trim() || null,
@@ -572,6 +577,21 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
             disabled={submitting}
           />
           <p className="form-hint">Optional citation or reference link for this event.</p>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="youtube_url" className="form-label">YouTube URL</label>
+          <input
+            id="youtube_url"
+            name="youtube_url"
+            type="url"
+            className="form-input"
+            value={formData.youtube_url}
+            onChange={handleChange}
+            placeholder="https://www.youtube.com/watch?v=..."
+            disabled={submitting}
+          />
+          <p className="form-hint">Optional YouTube link shown in event details.</p>
         </div>
 
         {/* Picture */}

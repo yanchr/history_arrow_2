@@ -41,6 +41,43 @@ function getSourceLabel(url) {
   }
 }
 
+function normalizeExternalUrl(url) {
+  if (!url) return null
+  const trimmed = url.trim()
+  if (!trimmed) return null
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+}
+
+function extractYouTubeVideoId(rawUrl) {
+  const normalizedUrl = normalizeExternalUrl(rawUrl)
+  if (!normalizedUrl) return null
+
+  try {
+    const parsed = new URL(normalizedUrl)
+    const host = parsed.hostname.replace(/^www\./i, '').toLowerCase()
+
+    let videoId = null
+    if (host === 'youtu.be') {
+      videoId = parsed.pathname.slice(1).split('/')[0]
+    } else if (host === 'youtube.com' || host.endsWith('.youtube.com')) {
+      if (parsed.pathname === '/watch') {
+        videoId = parsed.searchParams.get('v')
+      } else if (parsed.pathname.startsWith('/shorts/')) {
+        videoId = parsed.pathname.split('/')[2]
+      } else if (parsed.pathname.startsWith('/embed/')) {
+        videoId = parsed.pathname.split('/')[2]
+      } else if (parsed.pathname.startsWith('/live/')) {
+        videoId = parsed.pathname.split('/')[2]
+      }
+    }
+
+    if (!videoId) return null
+    return /^[a-zA-Z0-9_-]{11}$/.test(videoId) ? videoId : null
+  } catch {
+    return null
+  }
+}
+
 function normalizeAttributionInput(rawText) {
   const withMarkdownLinks = rawText.replace(HTML_LINK_REGEX, (_match, href, label) => {
     const normalizedUrl = normalizeAttributionUrl(decodeHtmlEntities(href))
@@ -143,6 +180,7 @@ function SelectedEventDetail({ event, onClose, onEdit, isAdmin = false }) {
     description,
     image_url,
     source_url,
+    youtube_url,
     attribution_text,
     license_type,
     is_published,
@@ -166,6 +204,11 @@ function SelectedEventDetail({ event, onClose, onEdit, isAdmin = false }) {
     ? (/^https?:\/\//i.test(rawSourceUrl) ? rawSourceUrl : `https://${rawSourceUrl}`)
     : null
   const sourceLabel = getSourceLabel(sourceUrlHref)
+  const youtubeVideoId = extractYouTubeVideoId(youtube_url)
+  const youtubeUrlHref = normalizeExternalUrl(youtube_url)
+  const youtubeEmbedUrl = youtubeVideoId
+    ? `https://www.youtube-nocookie.com/embed/${youtubeVideoId}`
+    : null
 
   return (
     <motion.div
@@ -245,6 +288,31 @@ function SelectedEventDetail({ event, onClose, onEdit, isAdmin = false }) {
 
         {canViewProtectedContent && description && (
           <p className="selected-event-description">{description}</p>
+        )}
+
+        {canViewProtectedContent && youtubeEmbedUrl && (
+          <div className="selected-event-video">
+            <iframe
+              src={youtubeEmbedUrl}
+              title={`${title} video`}
+              className="selected-event-video-frame"
+              loading="lazy"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        )}
+
+        {canViewProtectedContent && !youtubeEmbedUrl && youtubeUrlHref && (
+          <a
+            className="selected-event-link"
+            href={youtubeUrlHref}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Watch on YouTube
+          </a>
         )}
 
         {canViewProtectedContent && sourceUrlHref && (
