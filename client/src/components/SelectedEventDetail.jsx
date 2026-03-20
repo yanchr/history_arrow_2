@@ -371,16 +371,20 @@ function SelectedEventDetail({ event, onClose, onEdit, isAdmin = false }) {
             transition={{ duration: 0.2 }}
             onClick={() => setIsImageZoomed(false)}
           >
-            <motion.img
-              src={image_url}
-              alt={title}
-              className="selected-event-image-zoomed"
+            <motion.div
+              className="selected-event-image-zoomed-wrap"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
-            />
+            >
+              <img
+                src={image_url}
+                alt={title}
+                className="selected-event-image-zoomed"
+              />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
