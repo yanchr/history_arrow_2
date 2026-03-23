@@ -1,3 +1,4 @@
+import { useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './EventMarker.css'
 
@@ -13,8 +14,20 @@ function EventMarker({
   labelColor = null,
   markerColor = null,
   className = '',
-  disablePointerEvents = false
+  disablePointerEvents = false,
+  spanLongHoverMs = null,
+  onSpanLongHoverComplete = null
 }) {
+  const longHoverTimerRef = useRef(null)
+
+  const clearLongHoverTimer = useCallback(() => {
+    if (longHoverTimerRef.current) {
+      clearTimeout(longHoverTimerRef.current)
+      longHoverTimerRef.current = null
+    }
+  }, [])
+
+  useEffect(() => () => clearLongHoverTimer(), [clearLongHoverTimer])
   const {
     startPos,
     endPos,
@@ -28,9 +41,17 @@ function EventMarker({
 
   const handleMouseEnter = () => {
     onHover(event)
+    if (event.isSpan && spanLongHoverMs && onSpanLongHoverComplete) {
+      clearLongHoverTimer()
+      longHoverTimerRef.current = setTimeout(() => {
+        longHoverTimerRef.current = null
+        onSpanLongHoverComplete(event)
+      }, spanLongHoverMs)
+    }
   }
 
   const handleMouseLeave = () => {
+    clearLongHoverTimer()
     onHover(null)
   }
 

@@ -10,6 +10,7 @@ import { sampleEvents } from '../data/sampleEvents'
 import { formatEventDate } from '../utils/dateUtils'
 import { eventToYearsAgo, eventEndToYearsAgo, formatYearsAgoShort } from '../utils/logScaleUtils'
 import { canViewEventContent, getRestrictedContentMessage } from '../utils/contentVisibility'
+import { getEventsForTimeline } from '../utils/eventHierarchy'
 import './Home.css'
 import './Game.css'
 
@@ -88,7 +89,9 @@ function Game() {
   }, [events, loading])
 
   const filteredEvents = useMemo(() => {
-    const gameBaseEvents = displayEvents.filter((event) => event.label !== EXCLUDED_GAME_LABEL)
+    const gameBaseEvents = displayEvents.filter(
+      (event) => event.label !== EXCLUDED_GAME_LABEL && !event.parent_id
+    )
 
     if (activeLabels.length === 0) return gameBaseEvents
     if (filterMode === 'include') {
@@ -119,7 +122,7 @@ function Game() {
     setRoundStartPlayerIndex((prev) => prev % players.length)
   }, [players.length])
 
-  const timelineEvents = useMemo(() => {
+  const timelineEventsTopLevel = useMemo(() => {
     if (isFinalReveal) return []
     if (roundEvent && !isRevealed) {
       return filteredEvents.filter((event) => event.id !== roundEvent.id)
@@ -127,8 +130,13 @@ function Game() {
     return filteredEvents
   }, [filteredEvents, isFinalReveal, roundEvent, isRevealed])
 
+  const timelineEvents = useMemo(
+    () => getEventsForTimeline(displayEvents, timelineEventsTopLevel),
+    [displayEvents, timelineEventsTopLevel]
+  )
+
   const searchFilteredEvents = useMemo(() => {
-    const base = timelineEvents
+    const base = timelineEventsTopLevel
     if (!searchQuery.trim()) return base
     const query = searchQuery.toLowerCase()
     return base.filter((event) => {
@@ -138,7 +146,7 @@ function Game() {
         event.description.toLowerCase().includes(query)
       )
     })
-  }, [timelineEvents, searchQuery, isAdmin])
+  }, [timelineEventsTopLevel, searchQuery, isAdmin])
 
   const toggleLabel = useCallback((label) => {
     setActiveLabels((prev) => (prev.includes(label) ? prev.filter((value) => value !== label) : [...prev, label]))
@@ -575,6 +583,8 @@ function Game() {
           >
             <SelectedEventDetail
               event={selectedEvent}
+              allEvents={displayEvents}
+              labelColor={selectedEvent?.label ? labelColorMap.get(selectedEvent.label) : null}
               onClose={() => setSelectedEvent(null)}
               isAdmin={isAdmin}
             />

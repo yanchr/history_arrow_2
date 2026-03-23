@@ -7,9 +7,11 @@ import { useAuth } from '../hooks/useAuth'
 import { useLabels } from '../hooks/useLabels'
 import { useSeo } from '../hooks/useSeo'
 import EventForm from '../components/EventForm'
+import EventSubEventsEditor from '../components/EventSubEventsEditor'
 import { formatEventDate } from '../utils/dateUtils'
 import { canViewEventContent, getRestrictedContentMessage } from '../utils/contentVisibility'
 import { sampleEvents } from '../data/sampleEvents'
+import { getEventsForTimeline } from '../utils/eventHierarchy'
 import './Home.css'
 
 // Helper to check if an event is a span
@@ -27,7 +29,7 @@ function Home() {
     path: '/'
   })
 
-  const { events, loading, error, updateEvent } = useEvents()
+  const { events, loading, error, updateEvent, createEvent, deleteEvent, refetch } = useEvents()
   const { isAuthenticated, isAdmin } = useAuth()
   const { labels, labelColorMap } = useLabels()
   const [displayEvents, setDisplayEvents] = useState([])
@@ -104,14 +106,15 @@ function Home() {
   }, [events, loading])
 
   const filteredEvents = useMemo(() => {
-    if (activeLabels.length === 0) return displayEvents
+    const topLevel = displayEvents.filter((e) => !e.parent_id)
+    if (activeLabels.length === 0) return topLevel
     if (filterMode === 'include') {
-      return displayEvents.filter(e => {
+      return topLevel.filter(e => {
         if (!e.label && activeLabels.includes('__none__')) return true
         return e.label && activeLabels.includes(e.label)
       })
     }
-    return displayEvents.filter(e => {
+    return topLevel.filter(e => {
       if (!e.label && activeLabels.includes('__none__')) return false
       if (e.label && activeLabels.includes(e.label)) return false
       return true
@@ -127,6 +130,12 @@ function Home() {
       (canViewEventContent(event, isAdmin) && event.description && event.description.toLowerCase().includes(query))
     )
   }, [filteredEvents, searchQuery, isAdmin])
+
+  // Timeline follows label filters only; search applies to the "All Events" list, not the arrow
+  const timelineEvents = useMemo(
+    () => getEventsForTimeline(displayEvents, filteredEvents),
+    [displayEvents, filteredEvents]
+  )
 
   return (
     <div className="home-page">
@@ -195,7 +204,7 @@ function Home() {
         ) : (
           <HistoryArrow
             ref={timelineRef}
-            events={filteredEvents} 
+            events={timelineEvents}
             selectedEvent={selectedEvent}
             onEventClick={handleEventClick}
             onVisibleEventsChange={handleVisibleEventsChange}
@@ -217,6 +226,8 @@ function Home() {
           >
             <SelectedEventDetail 
               event={selectedEvent} 
+              allEvents={displayEvents}
+              labelColor={selectedEvent?.label ? labelColorMap.get(selectedEvent.label) : null}
               onClose={handleCloseSelectedEvent}
               onEdit={isAuthenticated && isAdmin ? handleEditEvent : undefined}
               isAdmin={isAdmin}
@@ -247,6 +258,19 @@ function Home() {
                 onCancel={handleEditCancel}
                 error={editError}
                 labels={labels}
+                beforeFormActions={
+                  <EventSubEventsEditor
+                    parentEvent={
+                      editingEvent && isEventSpan(editingEvent) && !editingEvent.parent_id ? editingEvent : null
+                    }
+                    allEvents={events?.length ? events : displayEvents}
+                    labels={labels}
+                    createEvent={createEvent}
+                    updateEvent={updateEvent}
+                    deleteEvent={deleteEvent}
+                    onAfterMutation={refetch}
+                  />
+                }
               />
             </motion.div>
           </motion.div>

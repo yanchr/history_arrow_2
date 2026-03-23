@@ -40,6 +40,10 @@
 --     ('politics', '#f97316');
 -- Storage policies (for image uploads):
 --   Run supabase-storage-policies.sql after creating the event-images bucket
+-- Sub-events (nested under a span parent):
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES events(id) ON DELETE CASCADE;
+--   CREATE INDEX IF NOT EXISTS idx_events_parent_id ON events(parent_id);
+--   COMMENT ON COLUMN events.parent_id IS 'Optional parent event id; sub-events are point-in-time rows within a span.';
 -- ============================================
 
 -- Enable UUID extension
@@ -71,6 +75,9 @@ CREATE TABLE IF NOT EXISTS events (
   
   -- Category label for filtering (e.g., 'nature', 'war', 'discovery', etc.)
   label VARCHAR(50) DEFAULT NULL,
+
+  -- Sub-events: point-in-time rows belonging to a parent span (nullable = top-level event)
+  parent_id UUID REFERENCES events(id) ON DELETE CASCADE,
   
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -115,6 +122,7 @@ CREATE INDEX idx_events_astronomical_start ON events(astronomical_start_year);
 CREATE INDEX idx_events_created_at ON events(created_at);
 CREATE INDEX idx_events_label ON events(label);
 CREATE INDEX idx_events_is_published ON events(is_published);
+CREATE INDEX idx_events_parent_id ON events(parent_id);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;

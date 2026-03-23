@@ -4,6 +4,7 @@ import { useEvents } from '../hooks/useEvents'
 import { useLabels } from '../hooks/useLabels'
 import { useSeo } from '../hooks/useSeo'
 import EventForm from '../components/EventForm'
+import EventSubEventsEditor from '../components/EventSubEventsEditor'
 import { formatEventDate } from '../utils/dateUtils'
 import './Admin.css'
 
@@ -66,6 +67,8 @@ function Admin() {
   const [editingLabel, setEditingLabel] = useState(null)
   const [editLabelName, setEditLabelName] = useState('')
   const [editLabelColor, setEditLabelColor] = useState('')
+  const [tableSubEdit, setTableSubEdit] = useState(null)
+  const [tableSubEditError, setTableSubEditError] = useState('')
 
   const hasText = (value) => typeof value === 'string' && value.trim().length > 0
 
@@ -118,10 +121,34 @@ function Admin() {
   }
 
   const handleEdit = (event) => {
+    if (event.parent_id) {
+      setTableSubEdit(event)
+      setTableSubEditError('')
+      return
+    }
     setEditingEvent(event)
     setShowForm(true)
     setActionError('')
     setActionSuccess('')
+  }
+
+  const handleTableSubEditSubmit = async (formData) => {
+    if (!tableSubEdit) return
+    try {
+      setTableSubEditError('')
+      await updateEvent(tableSubEdit.id, formData)
+      await refetch()
+      setActionSuccess('Sub-event updated.')
+      setTableSubEdit(null)
+      setTimeout(() => setActionSuccess(''), 3000)
+    } catch (err) {
+      setTableSubEditError(err.message)
+    }
+  }
+
+  const handleTableSubEditCancel = () => {
+    setTableSubEdit(null)
+    setTableSubEditError('')
   }
 
   const handleDelete = async (event) => {
@@ -219,6 +246,47 @@ function Admin() {
                 onSubmit={handleFormSubmit}
                 onCancel={handleFormCancel}
                 error={actionError}
+                labels={labels}
+                beforeFormActions={
+                  <EventSubEventsEditor
+                    parentEvent={editingEvent && isEventSpan(editingEvent) && !editingEvent.parent_id ? editingEvent : null}
+                    allEvents={events}
+                    labels={labels}
+                    createEvent={createEvent}
+                    updateEvent={updateEvent}
+                    deleteEvent={deleteEvent}
+                    onAfterMutation={refetch}
+                  />
+                }
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {tableSubEdit && (
+          <motion.div
+            className="form-overlay form-overlay--sub"
+            style={{ zIndex: 10020 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleTableSubEditCancel}
+          >
+            <motion.div
+              className="form-modal"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <EventForm
+                parentEvent={events.find((e) => e.id === tableSubEdit.parent_id)}
+                event={tableSubEdit}
+                onSubmit={handleTableSubEditSubmit}
+                onCancel={handleTableSubEditCancel}
+                error={tableSubEditError}
                 labels={labels}
               />
             </motion.div>
@@ -567,6 +635,9 @@ function Admin() {
                   >
                     <td>
                       <div className="event-title-cell">
+                        {event.parent_id && (
+                          <span className="admin-badge-sub">Sub</span>
+                        )}
                         <strong>{event.title}</strong>
                         {event.description && (
                           <span className="event-preview">{event.description.substring(0, 60)}...</span>

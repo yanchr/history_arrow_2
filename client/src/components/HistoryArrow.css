@@ -630,6 +630,60 @@
   bottom: 0;
 }
 
+.timeline-sub-focus {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  /* Fine-tuning knobs for sub-event marker vertical alignment */
+  --sub-focus-above-nudge: -20px; /* positive = move downward */
+  --sub-focus-below-nudge: -17px; /* negative = move upward */
+}
+
+.event-point--sub-focus .point-marker {
+  animation: sub-point-pop 0.35s ease-out both;
+}
+
+.event-point--sub-focus-above {
+  margin-top: var(--sub-focus-above-nudge);
+}
+
+.event-point--sub-focus-below {
+  margin-top: var(--sub-focus-below-nudge);
+}
+
+.event-point--sub-focus::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--label-color, #00d4ff) 70%, transparent);
+  border-radius: 999px;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.event-point--sub-focus-above::before {
+  top: 16px;
+  height: 12px;
+}
+
+.event-point--sub-focus-below::before {
+  bottom: 16px;
+  height: 12px;
+}
+
+@keyframes sub-point-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* View Range Labels */
 .view-range-labels {
   position: absolute;

@@ -10,12 +10,14 @@ import {
 } from '../utils/dateUtils'
 import { supabase } from '../utils/supabase'
 import { withTimeout } from '../utils/asyncTimeout'
+import { validateSubEventDates } from '../utils/eventHierarchy'
 import './EventForm.css'
 
 const STORAGE_BUCKET = 'event-images'
 const REQUEST_TIMEOUT_MS = 15000
 
-function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
+function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent = null, beforeFormActions = null }) {
+  const isSubEventForm = Boolean(parentEvent)
   // Form state
   const [formData, setFormData] = useState({
     title: '',
@@ -42,8 +44,102 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
   const [uploadError, setUploadError] = useState(null)
   const fileInputRef = useRef(null)
 
-  // Initialize form when editing an event
+  // Initialize form: top-level, new sub-event, or edit sub-event
   useEffect(() => {
+    if (parentEvent) {
+      const dateType = parentEvent.date_type || 'date'
+      if (event) {
+        if (dateType === 'astronomical') {
+          const startValues = yearsAgoToFormValues(event.astronomical_start_year)
+          setFormData({
+            title: event.title || '',
+            description: event.description || '',
+            image_url: event.image_url || '',
+            source_url: event.source_url || event.event_url || '',
+            youtube_url: event.youtube_url || '',
+            attribution_text: event.attribution_text || '',
+            is_published: Boolean(event.is_published),
+            license_type: event.license_type || '',
+            date_type: 'astronomical',
+            start_date: '',
+            end_date: '',
+            astronomical_value: startValues.value.toString(),
+            astronomical_unit: startValues.unit,
+            astronomical_end_value: '',
+            astronomical_end_unit: 'millions',
+            label: event.label || ''
+          })
+        } else {
+          setFormData({
+            title: event.title || '',
+            description: event.description || '',
+            image_url: event.image_url || '',
+            source_url: event.source_url || event.event_url || '',
+            youtube_url: event.youtube_url || '',
+            attribution_text: event.attribution_text || '',
+            is_published: Boolean(event.is_published),
+            license_type: event.license_type || '',
+            date_type: 'date',
+            start_date: event.start_date ? event.start_date.split('T')[0] : '',
+            end_date: '',
+            astronomical_value: '',
+            astronomical_unit: 'millions',
+            astronomical_end_value: '',
+            astronomical_end_unit: 'millions',
+            label: event.label || ''
+          })
+        }
+        setIsSpan(false)
+        return
+      }
+
+      if (dateType === 'astronomical') {
+        const pStart = parentEvent.astronomical_start_year
+        const pEnd = parentEvent.astronomical_end_year ?? pStart
+        const mid = Math.round((Number(pStart) + Number(pEnd)) / 2)
+        const startValues = yearsAgoToFormValues(mid)
+        setFormData({
+          title: '',
+          description: '',
+          image_url: '',
+          source_url: '',
+          youtube_url: '',
+          attribution_text: '',
+          is_published: Boolean(parentEvent.is_published),
+          license_type: parentEvent.license_type || '',
+          date_type: 'astronomical',
+          start_date: '',
+          end_date: '',
+          astronomical_value: startValues.value.toString(),
+          astronomical_unit: startValues.unit,
+          astronomical_end_value: '',
+          astronomical_end_unit: 'millions',
+          label: parentEvent.label || ''
+        })
+      } else {
+        setFormData({
+          title: '',
+          description: '',
+          image_url: '',
+          source_url: '',
+          youtube_url: '',
+          attribution_text: '',
+          is_published: Boolean(parentEvent.is_published),
+          license_type: parentEvent.license_type || '',
+          date_type: 'date',
+          start_date: parentEvent.start_date ? parentEvent.start_date.split('T')[0] : '',
+          end_date: '',
+          astronomical_value: '',
+          astronomical_unit: 'millions',
+          astronomical_end_value: '',
+          astronomical_end_unit: 'millions',
+          label: parentEvent.label || ''
+        })
+      }
+      setIsSpan(false)
+      return
+    }
+
     if (event) {
       const dateType = event.date_type || 'date'
       
@@ -94,7 +190,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         setIsSpan(!!event.end_date)
       }
     }
-  }, [event])
+  }, [event, parentEvent])
 
   // Calculate displayed years ago for astronomical inputs
   const astronomicalPreview = useMemo(() => {
@@ -191,6 +287,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
 
   const validate = () => {
     const errors = {}
+    const effectiveSpan = isSubEventForm ? false : isSpan
 
     if (!formData.title.trim()) {
       errors.title = 'Title is required'
@@ -201,7 +298,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         errors.start_date = 'Start date is required'
       }
 
-      if (isSpan) {
+      if (effectiveSpan) {
         if (!formData.end_date) {
           errors.end_date = 'End date is required for time spans'
         } else {
@@ -219,7 +316,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         errors.astronomical_value = 'Please enter a valid number'
       }
 
-      if (isSpan) {
+      if (effectiveSpan) {
         const endYears = parseAstronomicalInput(formData.astronomical_end_value, formData.astronomical_end_unit)
         
         if (!endYears) {
@@ -230,6 +327,25 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
             errors.astronomical_end_value = astroValidation.error
           }
         }
+      }
+    }
+
+    if (parentEvent) {
+      if (formData.date_type === 'date') {
+        const subCheck = validateSubEventDates(parentEvent, {
+          date_type: 'date',
+          start_date: formData.start_date,
+          end_date: null
+        })
+        if (!subCheck.valid) errors.start_date = subCheck.error
+      } else {
+        const startYears = parseAstronomicalInput(formData.astronomical_value, formData.astronomical_unit)
+        const subCheck = validateSubEventDates(parentEvent, {
+          date_type: 'astronomical',
+          astronomical_start_year: startYears,
+          astronomical_end_year: null
+        })
+        if (!subCheck.valid) errors.astronomical_value = subCheck.error
       }
     }
 
@@ -247,6 +363,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
     setSubmitting(true)
     
     let submitData
+    const effectiveSpan = isSubEventForm ? false : isSpan
 
     if (formData.date_type === 'date') {
       submitData = {
@@ -260,14 +377,15 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         license_type: formData.license_type?.trim() || null,
         date_type: 'date',
         start_date: formData.start_date,
-        end_date: isSpan ? formData.end_date : null,
+        end_date: effectiveSpan ? formData.end_date : null,
         astronomical_start_year: null,
         astronomical_end_year: null,
-        label: formData.label || null
+        label: formData.label || null,
+        parent_id: parentEvent ? parentEvent.id : null
       }
     } else {
       const startYears = parseAstronomicalInput(formData.astronomical_value, formData.astronomical_unit)
-      const endYears = isSpan 
+      const endYears = effectiveSpan 
         ? parseAstronomicalInput(formData.astronomical_end_value, formData.astronomical_end_unit)
         : null
 
@@ -285,7 +403,8 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         end_date: null,
         astronomical_start_year: startYears,
         astronomical_end_year: endYears,
-        label: formData.label || null
+        label: formData.label || null,
+        parent_id: parentEvent ? parentEvent.id : null
       }
     }
 
@@ -299,8 +418,16 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
   return (
     <div className="event-form">
       <div className="form-header">
-        <h2>{event ? 'Edit Event' : 'Add New Event'}</h2>
-        <p>{event ? 'Update the details below' : 'Fill in the details to create a new historical event'}</p>
+        <h2>
+          {parentEvent
+            ? (event ? 'Edit sub-event' : 'Add sub-event')
+            : (event ? 'Edit Event' : 'Add New Event')}
+        </h2>
+        <p>
+          {parentEvent
+            ? `Moment within “${parentEvent.title}” (${parentEvent.date_type === 'astronomical' ? 'astronomical' : 'calendar'})`
+            : (event ? 'Update the details below' : 'Fill in the details to create a new historical event')}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -361,6 +488,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
         </div>
 
         {/* Date Type Toggle */}
+        {!isSubEventForm && (
         <div className="form-group">
           <label className="form-label">Date Type</label>
           <div className="date-type-toggle">
@@ -400,8 +528,10 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
               : 'Use for events millions/billions of years ago (e.g., geological eras, evolution)'}
           </p>
         </div>
+        )}
 
         {/* Time Span Toggle */}
+        {!isSubEventForm && (
         <div className="form-group">
           <div className="span-toggle">
             <label className="toggle-label">
@@ -418,6 +548,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
             </label>
           </div>
         </div>
+        )}
 
         {/* Date Inputs */}
         <AnimatePresence mode="wait">
@@ -480,7 +611,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
               {/* Start/Main astronomical input */}
               <div className="form-group">
                 <label className="form-label">
-                  {isSpan ? 'Started (years ago) *' : 'Years Ago *'}
+                  {isSubEventForm ? 'Moment (years ago) *' : isSpan ? 'Started (years ago) *' : 'Years Ago *'}
                 </label>
                 <div className="astronomical-input-group">
                   <input
@@ -717,6 +848,8 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [] }) {
             </label>
           </div>
         </div>
+
+        {beforeFormActions}
 
         <div className="form-actions">
           <button

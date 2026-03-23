@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { formatEventDate } from '../utils/dateUtils'
+import { eventToYearsAgo } from '../utils/logScaleUtils'
 import { canViewEventContent, getRestrictedContentMessage } from '../utils/contentVisibility'
+import { getSubEventsForParent } from '../utils/eventHierarchy'
 import './SelectedEventDetail.css'
 
 const MARKDOWN_LINK_REGEX = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
@@ -153,7 +155,54 @@ function renderAttributionText(text) {
   return output
 }
 
-function SelectedEventDetail({ event, onClose, onEdit, isAdmin = false }) {
+function formatIsoDateToDotted(dateString) {
+  if (!dateString || typeof dateString !== 'string') return null
+  const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!match) return null
+  return `${match[3]}.${match[2]}.${match[1]}`
+}
+
+function formatAgeFromYears(years) {
+  if (!Number.isFinite(years) || years < 0) return null
+  if (years >= 1e9) return `${(years / 1e9).toFixed(2).replace(/\.?0+$/, '')} billion years`
+  if (years >= 1e6) return `${(years / 1e6).toFixed(1).replace(/\.?0+$/, '')} million years`
+  if (years >= 1e3) return `${(years / 1e3).toFixed(1).replace(/\.?0+$/, '')} thousand years`
+  if (years >= 10) return `${Math.round(years)} years`
+  return `${years.toFixed(1).replace(/\.?0+$/, '')} years`
+}
+
+function getSubEventAgeMeta(parentEvent, subEvent) {
+  if (!parentEvent || !subEvent || parentEvent.date_type !== subEvent.date_type) return null
+
+  if (subEvent.date_type === 'astronomical') {
+    const parentStart = Number(parentEvent.astronomical_start_year)
+    const subStart = Number(subEvent.astronomical_start_year)
+    if (!Number.isFinite(parentStart) || !Number.isFinite(subStart)) return null
+    const ageYears = Math.max(0, parentStart - subStart)
+    const ageLabel = formatAgeFromYears(ageYears)
+    const atLabel = formatEventDate(subEvent, false)
+    if (!ageLabel || !atLabel) return null
+    return `age: ${ageLabel} | ${atLabel}`
+  }
+
+  const parentStart = new Date(parentEvent.start_date)
+  const subStart = new Date(subEvent.start_date)
+  if (Number.isNaN(parentStart.getTime()) || Number.isNaN(subStart.getTime())) return null
+  const diffYears = Math.max(0, (subStart.getTime() - parentStart.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+  const ageLabel = formatAgeFromYears(diffYears)
+  const atLabel = formatIsoDateToDotted(subEvent.start_date) || formatEventDate(subEvent, false)
+  if (!ageLabel || !atLabel) return null
+  return `age: ${ageLabel} | ${atLabel}`
+}
+
+function SelectedEventDetail({
+  event,
+  onClose,
+  onEdit,
+  isAdmin = false,
+  allEvents = [],
+  labelColor = null
+}) {
   const [isImageZoomed, setIsImageZoomed] = useState(false)
 
   useEffect(() => {
@@ -195,6 +244,13 @@ function SelectedEventDetail({ event, onClose, onEdit, isAdmin = false }) {
   const isSpan = date_type === 'astronomical'
     ? !!event.astronomical_end_year
     : !!event.end_date
+
+  const subEvents = useMemo(() => {
+    if (!event?.id || !Array.isArray(allEvents) || allEvents.length === 0) return []
+    return getSubEventsForParent(allEvents, event.id).filter((s) => canViewEventContent(s, isAdmin))
+  }, [event?.id, allEvents, isAdmin])
+
+  const subTimelineAccent = labelColor || '#22c55e'
 
   // Get event type label
   const eventTypeLabel = date_type === 'astronomical' ? 'Astronomical' : 'Historical'
@@ -288,6 +344,81 @@ function SelectedEventDetail({ event, onClose, onEdit, isAdmin = false }) {
 
         {canViewProtectedContent && description && (
           <p className="selected-event-description">{description}</p>
+        )}
+
+        {canViewProtectedContent && isSpan && subEvents.length > 0 && (
+          <div
+            className="selected-event-sub-timeline"
+            style={{ '--sub-event-accent': subTimelineAccent }}
+          >
+            {subEvents.map((sub) => {
+              const canViewSub = canViewEventContent(sub, isAdmin)
+              const subAgeMeta = getSubEventAgeMeta(event, sub)
+              const subYearsAgo = eventToYearsAgo(sub)
+              const subYoutubeVideoId = extractYouTubeVideoId(sub.youtube_url)
+              const subYoutubeUrlHref = normalizeExternalUrl(sub.youtube_url)
+              const subYoutubeEmbedUrl = subYoutubeVideoId
+                ? `https://www.youtube-nocookie.com/embed/${subYoutubeVideoId}`
+                : null
+              return (
+                <div key={sub.id} className="selected-event-sub-row">
+                  <div className="selected-event-sub-track">
+                    <div className="selected-event-sub-axis" />
+                    <span className="selected-event-sub-connector" />
+                  </div>
+                  <div className="selected-event-sub-body">
+                    <p className="selected-event-sub-title">
+                      {sub.title}
+                      {subAgeMeta && (
+                        <span className="selected-event-sub-meta"> - {subAgeMeta}</span>
+                      )}
+                      {!subAgeMeta && Number.isFinite(subYearsAgo) && (
+                        <span className="selected-event-sub-meta"> - {formatEventDate(sub, false)}</span>
+                      )}
+                    </p>
+                    {canViewSub && sub.description && (
+                      <p className="selected-event-sub-text">{sub.description}</p>
+                    )}
+                    {canViewSub && sub.image_url && (
+                      <div className="selected-event-sub-image-wrap">
+                        <img src={sub.image_url} alt={sub.title} className="selected-event-sub-image" />
+                        {(sub.attribution_text || sub.license_type) && (
+                          <p className="selected-event-sub-image-credit">
+                            <span className="selected-event-sub-image-credit-title">Image credit:</span>{' '}
+                            {sub.attribution_text ? renderAttributionText(sub.attribution_text) : 'Unknown'}
+                            {sub.license_type ? ` - ${sub.license_type}` : ''}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {canViewSub && subYoutubeEmbedUrl && (
+                      <div className="selected-event-sub-video">
+                        <iframe
+                          src={subYoutubeEmbedUrl}
+                          title={`${sub.title} video`}
+                          className="selected-event-sub-video-frame"
+                          loading="lazy"
+                          referrerPolicy="strict-origin-when-cross-origin"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                        />
+                      </div>
+                    )}
+                    {canViewSub && !subYoutubeEmbedUrl && subYoutubeUrlHref && (
+                      <a
+                        className="selected-event-sub-link"
+                        href={subYoutubeUrlHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Watch on YouTube
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         )}
 
         {canViewProtectedContent && youtubeEmbedUrl && (

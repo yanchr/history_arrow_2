@@ -63,6 +63,11 @@ const MADDISON_REGION_ORDER = [
   'Western Offshoots'
 ]
 const POPULATION_MAX_YEAR = 2022
+const SPAN_SUB_FOCUS_HOVER_MS = 2000
+
+function isTopLevelTimelineEvent(event) {
+  return !event?.parent_id
+}
 
 const getValueAtOrBeforeYear = (valuesByYear, sortedYears, targetYear) => {
   if (!Number.isFinite(targetYear) || !valuesByYear || !Array.isArray(sortedYears) || sortedYears.length === 0) {
@@ -207,6 +212,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   const [mapMiniHover, setMapMiniHover] = useState({ active: false, percentage: 0 })
   const [lastTimelineYearsAgo, setLastTimelineYearsAgo] = useState(null)
   const [lastMapMiniPercentage, setLastMapMiniPercentage] = useState(null)
+  const [subFocusParentId, setSubFocusParentId] = useState(null)
   const [inlineVideoReady, setInlineVideoReady] = useState(false)
   const [modalVideoReady, setModalVideoReady] = useState(false)
   const [lifeExpectancyByEntity, setLifeExpectancyByEntity] = useState(() => new Map())
@@ -401,7 +407,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     let minYearsAgo = Infinity
     let maxYearsAgo = 0
 
-    events.forEach(event => {
+    events.filter(isTopLevelTimelineEvent).forEach(event => {
       const startYearsAgo = eventToYearsAgo(event)
       const endYearsAgo = eventEndToYearsAgo(event)
 
@@ -432,6 +438,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   // Position events on the timeline using LINEAR scale
   const positionedEvents = useMemo(() => {
     return events
+      .filter(isTopLevelTimelineEvent)
       .map(event => {
         const startYearsAgo = eventToYearsAgo(event)
         const endYearsAgo = eventEndToYearsAgo(event)
@@ -622,6 +629,56 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     })
   }, [positionedEvents, spanLaneLayout.laneMetadata, pointLaneLayout.laneMetadata])
 
+  const focusParentLaneEvent = useMemo(() => {
+    if (!subFocusParentId) return null
+    return laneAwareEvents.find((e) => e.id === subFocusParentId && e.isSpan) ?? null
+  }, [laneAwareEvents, subFocusParentId])
+
+  const positionedSubEvents = useMemo(() => {
+    if (!subFocusParentId) return []
+    return events
+      .filter((e) => e.parent_id === subFocusParentId)
+      .map((event) => {
+        const startYearsAgo = eventToYearsAgo(event)
+        const endYearsAgo = eventEndToYearsAgo(event)
+        return { ...event, isSpan: false, yearsAgo: startYearsAgo, endYearsAgo }
+      })
+      .filter((event) => {
+        const startYearsAgo = event.yearsAgo
+        return startYearsAgo >= viewStart && startYearsAgo <= viewEnd
+      })
+      .map((event, index) => {
+        const startPos = yearToLinearPosition(event.yearsAgo, viewStart, viewEnd)
+        const visualLane = index % 2
+        const pointLaneDirection = visualLane === 0 ? -1 : 1
+        return {
+          ...event,
+          isSpan: false,
+          startPos,
+          endPos: null,
+          pointLaneIndex: 0,
+          pointVisualLane: visualLane,
+          pointLaneRing: 1,
+          pointLaneDirection,
+          pointLaneCount: 1,
+          pointEffectiveLaneCount: 2
+        }
+      })
+  }, [events, subFocusParentId, viewStart, viewEnd])
+
+  useEffect(() => {
+    if (!subFocusParentId) return
+    if (!focusParentLaneEvent) setSubFocusParentId(null)
+  }, [subFocusParentId, focusParentLaneEvent])
+
+  const handleSpanSubFocusComplete = useCallback((spanEvent) => {
+    setSubFocusParentId(spanEvent.id)
+  }, [])
+
+  const handleExitSubFocus = useCallback(() => {
+    setSubFocusParentId(null)
+  }, [])
+
   // Notify parent of visible events changes
   useEffect(() => {
     if (onVisibleEventsChange) {
@@ -658,9 +715,10 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   const handleRandomEventSelect = useCallback(() => {
     if (!events || events.length === 0) return
 
-    const candidates = events.length > 1 && selectedEvent
-      ? events.filter(event => event.id !== selectedEvent.id)
-      : events
+    const topLevel = events.filter(isTopLevelTimelineEvent)
+    const candidates = topLevel.length > 1 && selectedEvent
+      ? topLevel.filter(event => event.id !== selectedEvent.id)
+      : topLevel
 
     const randomEvent = candidates[Math.floor(Math.random() * candidates.length)]
     if (!randomEvent) return
@@ -844,8 +902,9 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   }, [gameGhostEvent, timelineHover, buildGhostPlacement])
 
   const minimapEvents = useMemo(() => {
-    if (!hiddenEventIdSet.size) return events
-    return events.filter(event => !hiddenEventIdSet.has(event.id))
+    const topLevel = events.filter(isTopLevelTimelineEvent)
+    if (!hiddenEventIdSet.size) return topLevel
+    return topLevel.filter(event => !hiddenEventIdSet.has(event.id))
   }, [events, hiddenEventIdSet])
 
   const mapYearsAgo = useMemo(() => {
@@ -1332,34 +1391,95 @@ const HistoryArrow = forwardRef(function HistoryArrow({
             onMouseLeave={handleTimelineMouseLeave}
             onClick={handleTimelineClick}
           >
-            {laneAwareEvents.map(event => {
-              const eventLabelColor = labelColorMap.get(event.label) || null
-              const labelLaneBudget = event.isSpan
-                ? Math.min(
+            {subFocusParentId && focusParentLaneEvent ? (
+              <div
+                className="timeline-sub-focus"
+                onMouseLeave={handleExitSubFocus}
+              >
+                {(() => {
+                  const event = focusParentLaneEvent
+                  const focusedParentEvent = {
+                    ...event,
+                    // During sub-focus, pin the parent span just above the arrow baseline
+                    // so child points visually connect to the main span.
+                    spanLaneRing: 1,
+                    spanLaneDirection: -1
+                  }
+                  const eventLabelColor = labelColorMap.get(event.label) || null
+                  const labelLaneBudget = Math.min(
                     event.spanEffectiveLaneCount,
                     isIphoneViewport ? IPHONE_VISIBLE_SPAN_LABEL_LANES : DESKTOP_VISIBLE_SPAN_LABEL_LANES
                   )
-                : Math.min(
+                  const shouldShowLabel = event.spanLaneIndex < labelLaneBudget
+                  return (
+                    <EventMarker
+                      key={event.id}
+                      event={focusedParentEvent}
+                      onHover={handleEventHover}
+                      onClick={onEventClick}
+                      isHovered={hoveredEvent?.id === event.id}
+                      isSelected={selectedEvent?.id === event.id}
+                      showLabel={shouldShowLabel}
+                      labelColor={eventLabelColor}
+                    />
+                  )
+                })()}
+                {positionedSubEvents.map((event) => {
+                  const eventLabelColor = labelColorMap.get(event.label) || null
+                  const labelLaneBudget = Math.min(
                     event.pointEffectiveLaneCount,
                     isIphoneViewport ? IPHONE_VISIBLE_POINT_LABEL_LANES : DESKTOP_VISIBLE_POINT_LABEL_LANES
                   )
-              const shouldShowLabel = event.isSpan
-                ? event.spanLaneIndex < labelLaneBudget
-                : event.pointLaneIndex < labelLaneBudget
+                  const shouldShowLabel = event.pointLaneIndex < labelLaneBudget
+                  return (
+                    <EventMarker
+                      key={event.id}
+                      event={event}
+                      onHover={handleEventHover}
+                      onClick={onEventClick}
+                      isHovered={hoveredEvent?.id === event.id}
+                      isSelected={selectedEvent?.id === event.id}
+                      showLabel={shouldShowLabel}
+                      labelColor={eventLabelColor}
+                      className={`event-point--sub-focus ${
+                        event.pointLaneDirection < 0 ? 'event-point--sub-focus-above' : 'event-point--sub-focus-below'
+                      }`}
+                    />
+                  )
+                })}
+              </div>
+            ) : !subFocusParentId ? (
+              laneAwareEvents.map(event => {
+                const eventLabelColor = labelColorMap.get(event.label) || null
+                const labelLaneBudget = event.isSpan
+                  ? Math.min(
+                      event.spanEffectiveLaneCount,
+                      isIphoneViewport ? IPHONE_VISIBLE_SPAN_LABEL_LANES : DESKTOP_VISIBLE_SPAN_LABEL_LANES
+                    )
+                  : Math.min(
+                      event.pointEffectiveLaneCount,
+                      isIphoneViewport ? IPHONE_VISIBLE_POINT_LABEL_LANES : DESKTOP_VISIBLE_POINT_LABEL_LANES
+                    )
+                const shouldShowLabel = event.isSpan
+                  ? event.spanLaneIndex < labelLaneBudget
+                  : event.pointLaneIndex < labelLaneBudget
 
-              return (
-                <EventMarker
-                  key={event.id}
-                  event={event}
-                  onHover={handleEventHover}
-                  onClick={onEventClick}
-                  isHovered={hoveredEvent?.id === event.id}
-                  isSelected={selectedEvent?.id === event.id}
-                  showLabel={shouldShowLabel}
-                  labelColor={eventLabelColor}
-                />
-              )
-            })}
+                return (
+                  <EventMarker
+                    key={event.id}
+                    event={event}
+                    onHover={handleEventHover}
+                    onClick={onEventClick}
+                    isHovered={hoveredEvent?.id === event.id}
+                    isSelected={selectedEvent?.id === event.id}
+                    showLabel={shouldShowLabel}
+                    labelColor={eventLabelColor}
+                    spanLongHoverMs={event.isSpan ? SPAN_SUB_FOCUS_HOVER_MS : null}
+                    onSpanLongHoverComplete={event.isSpan ? handleSpanSubFocusComplete : null}
+                  />
+                )
+              })
+            ) : null}
             {ghostMarkerEvent && (
               <EventMarker
                 event={ghostMarkerEvent}
