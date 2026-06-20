@@ -37,7 +37,7 @@ export function isParentSpan(event) {
 }
 
 /**
- * Validates a sub-event payload (point-in-time only) against its parent span.
+ * Validates a sub-event (single date or shorter span) against its parent's span.
  * @returns {{ valid: boolean, error?: string }}
  */
 export function validateSubEventDates(parent, childPayload) {
@@ -49,37 +49,60 @@ export function validateSubEventDates(parent, childPayload) {
   }
 
   if (childPayload.date_type === 'date') {
-    if (childPayload.end_date) {
-      return { valid: false, error: 'Sub-events must be a single date (no end date).' }
-    }
     if (!childPayload.start_date) {
       return { valid: false, error: 'Start date is required.' }
     }
     const parentStart = parent.start_date
     const parentEnd = parent.end_date
-    const childDate = childPayload.start_date
-    if (parentStart && new Date(childDate) < new Date(parentStart)) {
-      return { valid: false, error: 'Sub-event date must be within the parent span.' }
-    }
-    if (parentEnd && new Date(childDate) > new Date(parentEnd)) {
-      return { valid: false, error: 'Sub-event date must be within the parent span.' }
+
+    const childHasEnd = Boolean(childPayload.end_date)
+
+    if (childHasEnd) {
+      if (new Date(childPayload.start_date) > new Date(childPayload.end_date)) {
+        return { valid: false, error: 'Sub-event end date must be on or after the start date.' }
+      }
+      if (parentStart && new Date(childPayload.start_date) < new Date(parentStart)) {
+        return { valid: false, error: 'Sub-event span must fall within the parent span.' }
+      }
+      if (parentEnd && new Date(childPayload.end_date) > new Date(parentEnd)) {
+        return { valid: false, error: 'Sub-event span must fall within the parent span.' }
+      }
+    } else {
+      const childDate = childPayload.start_date
+      if (parentStart && new Date(childDate) < new Date(parentStart)) {
+        return { valid: false, error: 'Sub-event date must be within the parent span.' }
+      }
+      if (parentEnd && new Date(childDate) > new Date(parentEnd)) {
+        return { valid: false, error: 'Sub-event date must be within the parent span.' }
+      }
     }
     return { valid: true }
   }
 
-  if (childPayload.astronomical_end_year) {
-    return { valid: false, error: 'Sub-events must be a single astronomical moment (no end year).' }
-  }
   const childStart = childPayload.astronomical_start_year
   if (childStart == null || !Number.isFinite(Number(childStart))) {
     return { valid: false, error: 'Astronomical year is required.' }
   }
-  const pStart = parent.astronomical_start_year
-  const pEnd = parent.astronomical_end_year
-  const spanEnd = pEnd ?? pStart
-  const older = Math.max(pStart, spanEnd)
-  const newer = Math.min(pStart, spanEnd)
-  if (childStart > older || childStart < newer) {
+
+  const pStart = Number(parent.astronomical_start_year)
+  const pEnd = parent.astronomical_end_year != null ? Number(parent.astronomical_end_year) : pStart
+  const parentOlder = Math.max(pStart, pEnd)
+  const parentNewer = Math.min(pStart, pEnd)
+
+  if (childPayload.astronomical_end_year != null) {
+    const childEnd = Number(childPayload.astronomical_end_year)
+    if (!Number.isFinite(childEnd)) {
+      return { valid: false, error: 'Astronomical end year is invalid.' }
+    }
+    const childOlder = Math.max(childStart, childEnd)
+    const childNewer = Math.min(childStart, childEnd)
+    if (childOlder > parentOlder || childNewer < parentNewer) {
+      return { valid: false, error: 'Sub-event span must fall within the parent span (years ago).' }
+    }
+    return { valid: true }
+  }
+
+  if (childStart > parentOlder || childStart < parentNewer) {
     return { valid: false, error: 'Sub-event must fall within the parent span (years ago).' }
   }
   return { valid: true }

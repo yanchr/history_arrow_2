@@ -10,7 +10,7 @@ import {
 } from '../utils/dateUtils'
 import { supabase } from '../utils/supabase'
 import { withTimeout } from '../utils/asyncTimeout'
-import { validateSubEventDates } from '../utils/eventHierarchy'
+import { validateSubEventDates, isParentSpan } from '../utils/eventHierarchy'
 import './EventForm.css'
 
 const STORAGE_BUCKET = 'event-images'
@@ -51,6 +51,9 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
       if (event) {
         if (dateType === 'astronomical') {
           const startValues = yearsAgoToFormValues(event.astronomical_start_year)
+          const endValues = event.astronomical_end_year
+            ? yearsAgoToFormValues(event.astronomical_end_year)
+            : { value: '', unit: 'millions' }
           setFormData({
             title: event.title || '',
             description: event.description || '',
@@ -65,10 +68,11 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
             end_date: '',
             astronomical_value: startValues.value.toString(),
             astronomical_unit: startValues.unit,
-            astronomical_end_value: '',
-            astronomical_end_unit: 'millions',
+            astronomical_end_value: endValues.value ? endValues.value.toString() : '',
+            astronomical_end_unit: endValues.unit,
             label: event.label || ''
           })
+          setIsSpan(!!event.astronomical_end_year)
         } else {
           setFormData({
             title: event.title || '',
@@ -81,15 +85,15 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
             license_type: event.license_type || '',
             date_type: 'date',
             start_date: event.start_date ? event.start_date.split('T')[0] : '',
-            end_date: '',
+            end_date: event.end_date ? event.end_date.split('T')[0] : '',
             astronomical_value: '',
             astronomical_unit: 'millions',
             astronomical_end_value: '',
             astronomical_end_unit: 'millions',
             label: event.label || ''
           })
+          setIsSpan(!!event.end_date)
         }
-        setIsSpan(false)
         return
       }
 
@@ -287,7 +291,6 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
 
   const validate = () => {
     const errors = {}
-    const effectiveSpan = isSubEventForm ? false : isSpan
 
     if (!formData.title.trim()) {
       errors.title = 'Title is required'
@@ -298,7 +301,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
         errors.start_date = 'Start date is required'
       }
 
-      if (effectiveSpan) {
+      if (isSpan) {
         if (!formData.end_date) {
           errors.end_date = 'End date is required for time spans'
         } else {
@@ -316,7 +319,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
         errors.astronomical_value = 'Please enter a valid number'
       }
 
-      if (effectiveSpan) {
+      if (isSpan) {
         const endYears = parseAstronomicalInput(formData.astronomical_end_value, formData.astronomical_end_unit)
         
         if (!endYears) {
@@ -335,15 +338,18 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
         const subCheck = validateSubEventDates(parentEvent, {
           date_type: 'date',
           start_date: formData.start_date,
-          end_date: null
+          end_date: isSpan ? formData.end_date : null
         })
         if (!subCheck.valid) errors.start_date = subCheck.error
       } else {
         const startYears = parseAstronomicalInput(formData.astronomical_value, formData.astronomical_unit)
+        const endYears = isSpan
+          ? parseAstronomicalInput(formData.astronomical_end_value, formData.astronomical_end_unit)
+          : null
         const subCheck = validateSubEventDates(parentEvent, {
           date_type: 'astronomical',
           astronomical_start_year: startYears,
-          astronomical_end_year: null
+          astronomical_end_year: endYears
         })
         if (!subCheck.valid) errors.astronomical_value = subCheck.error
       }
@@ -363,7 +369,6 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
     setSubmitting(true)
     
     let submitData
-    const effectiveSpan = isSubEventForm ? false : isSpan
 
     if (formData.date_type === 'date') {
       submitData = {
@@ -377,7 +382,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
         license_type: formData.license_type?.trim() || null,
         date_type: 'date',
         start_date: formData.start_date,
-        end_date: effectiveSpan ? formData.end_date : null,
+        end_date: isSpan ? formData.end_date : null,
         astronomical_start_year: null,
         astronomical_end_year: null,
         label: formData.label || null,
@@ -385,7 +390,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
       }
     } else {
       const startYears = parseAstronomicalInput(formData.astronomical_value, formData.astronomical_unit)
-      const endYears = effectiveSpan 
+      const endYears = isSpan 
         ? parseAstronomicalInput(formData.astronomical_end_value, formData.astronomical_end_unit)
         : null
 
@@ -425,7 +430,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
         </h2>
         <p>
           {parentEvent
-            ? `Moment within “${parentEvent.title}” (${parentEvent.date_type === 'astronomical' ? 'astronomical' : 'calendar'})`
+            ? `Within “${parentEvent.title}” (${parentEvent.date_type === 'astronomical' ? 'astronomical' : 'calendar'}) — single date or a shorter span inside the parent`
             : (event ? 'Update the details below' : 'Fill in the details to create a new historical event')}
         </p>
       </div>
@@ -530,8 +535,8 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
         </div>
         )}
 
-        {/* Time Span Toggle */}
-        {!isSubEventForm && (
+        {/* Time Span Toggle (sub-events: only under a parent span) */}
+        {(!isSubEventForm || isParentSpan(parentEvent)) && (
         <div className="form-group">
           <div className="span-toggle">
             <label className="toggle-label">
@@ -611,7 +616,7 @@ function EventForm({ event, onSubmit, onCancel, error, labels = [], parentEvent 
               {/* Start/Main astronomical input */}
               <div className="form-group">
                 <label className="form-label">
-                  {isSubEventForm ? 'Moment (years ago) *' : isSpan ? 'Started (years ago) *' : 'Years Ago *'}
+                  {isSubEventForm && !isSpan ? 'Moment (years ago) *' : isSpan ? 'Started (years ago) *' : 'Years Ago *'}
                 </label>
                 <div className="astronomical-input-group">
                   <input

@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { formatEventDate } from '../utils/dateUtils'
-import { eventToYearsAgo } from '../utils/logScaleUtils'
+import { formatEventDate, formatEventDateRange } from '../utils/dateUtils'
 import { canViewEventContent, getRestrictedContentMessage } from '../utils/contentVisibility'
 import { getSubEventsForParent } from '../utils/eventHierarchy'
 import './SelectedEventDetail.css'
@@ -199,6 +198,8 @@ function SelectedEventDetail({
   event,
   onClose,
   onEdit,
+  isHidden = false,
+  onToggleHidden,
   isAdmin = false,
   allEvents = [],
   labelColor = null
@@ -296,6 +297,28 @@ function SelectedEventDetail({
                 </svg>
               </button>
             )}
+            {onToggleHidden && (
+              <button
+                type="button"
+                className={`hide-btn ${isHidden ? 'hide-btn--active' : ''}`}
+                onClick={onToggleHidden}
+                aria-label={isHidden ? 'Show on timeline' : 'Hide from timeline'}
+                aria-pressed={isHidden}
+                title={isHidden ? 'Show on timeline' : 'Hide from timeline (session only)'}
+              >
+                {isHidden ? (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                )}
+              </button>
+            )}
             <button className="close-btn" onClick={onClose} aria-label="Close">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 6L6 18M6 6l12 12" />
@@ -354,7 +377,6 @@ function SelectedEventDetail({
             {subEvents.map((sub) => {
               const canViewSub = canViewEventContent(sub, isAdmin)
               const subAgeMeta = getSubEventAgeMeta(event, sub)
-              const subYearsAgo = eventToYearsAgo(sub)
               const subYoutubeVideoId = extractYouTubeVideoId(sub.youtube_url)
               const subYoutubeUrlHref = normalizeExternalUrl(sub.youtube_url)
               const subYoutubeEmbedUrl = subYoutubeVideoId
@@ -369,11 +391,8 @@ function SelectedEventDetail({
                   <div className="selected-event-sub-body">
                     <p className="selected-event-sub-title">
                       {sub.title}
-                      {subAgeMeta && (
-                        <span className="selected-event-sub-meta"> - {subAgeMeta}</span>
-                      )}
-                      {!subAgeMeta && Number.isFinite(subYearsAgo) && (
-                        <span className="selected-event-sub-meta"> - {formatEventDate(sub, false)}</span>
+                      {(subAgeMeta || formatEventDateRange(sub)) && (
+                        <span className="selected-event-sub-meta"> - {subAgeMeta || formatEventDateRange(sub)}</span>
                       )}
                     </p>
                     {canViewSub && sub.description && (

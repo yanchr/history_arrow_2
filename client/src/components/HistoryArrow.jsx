@@ -64,9 +64,119 @@ const MADDISON_REGION_ORDER = [
 ]
 const POPULATION_MAX_YEAR = 2022
 const SPAN_SUB_FOCUS_HOVER_MS = 2000
+/** Delay single-click guess so double-click can zoom without placing a guess (game mode). */
+const TIMELINE_GUESS_CLICK_DEFER_MS = 280
 
 function isTopLevelTimelineEvent(event) {
   return !event?.parent_id
+}
+
+function buildPositionedSubEventsForParent(parentId, events, viewStart, viewEnd) {
+  if (!parentId) return []
+  const filtered = events
+    .filter((e) => e.parent_id === parentId)
+    .map((event) => {
+      const startYearsAgo = eventToYearsAgo(event)
+      const endYearsAgo = eventEndToYearsAgo(event)
+      const isSpan = event.date_type === 'astronomical'
+        ? !!event.astronomical_end_year
+        : !!event.end_date
+      return { ...event, isSpan, yearsAgo: startYearsAgo, endYearsAgo }
+    })
+    .filter((event) => {
+      const startYearsAgo = event.yearsAgo
+      const endYearsAgo = event.endYearsAgo
+      if (!event.isSpan) {
+        return startYearsAgo >= viewStart && startYearsAgo <= viewEnd
+      }
+      const spanStart = Math.max(startYearsAgo, endYearsAgo || startYearsAgo)
+      const spanEnd = Math.min(startYearsAgo, endYearsAgo || startYearsAgo)
+      return spanStart >= viewStart && spanEnd <= viewEnd
+    })
+
+  const withGeometry = filtered.map((event) => {
+    const startPos = yearToLinearPosition(event.yearsAgo, viewStart, viewEnd)
+    const endPos = event.endYearsAgo !== null
+      ? yearToLinearPosition(event.endYearsAgo, viewStart, viewEnd)
+      : null
+    const spanWidth = endPos !== null ? Math.abs(endPos - startPos) : 0
+    const shouldRenderAsPoint = event.isSpan && spanWidth < MIN_VISIBLE_SPAN_WIDTH_PERCENT
+    const centeredYearsAgo = event.endYearsAgo !== null
+      ? (event.yearsAgo + event.endYearsAgo) / 2
+      : event.yearsAgo
+    const centeredPos = endPos !== null ? (startPos + endPos) / 2 : startPos
+
+    const resolvedIsSpan = shouldRenderAsPoint ? false : event.isSpan
+    const resolvedYearsAgo = shouldRenderAsPoint ? centeredYearsAgo : event.yearsAgo
+    const resolvedStartPos = shouldRenderAsPoint ? centeredPos : startPos
+    const resolvedEndPos = shouldRenderAsPoint ? null : endPos
+
+    const sortKey = resolvedIsSpan && resolvedEndPos !== null
+      ? Math.min(resolvedStartPos, resolvedEndPos)
+      : resolvedStartPos
+
+    return {
+      event,
+      resolvedIsSpan,
+      resolvedYearsAgo,
+      resolvedStartPos,
+      resolvedEndPos,
+      sortKey
+    }
+  })
+
+  withGeometry.sort((a, b) => a.sortKey - b.sortKey)
+
+  let nextPointSlot = 0
+  let nextSpanSlot = 0
+  let totalPointSlots = 0
+  let totalSpanSlots = 0
+  for (const row of withGeometry) {
+    if (row.resolvedIsSpan && row.resolvedEndPos !== null) totalSpanSlots += 1
+    else totalPointSlots += 1
+  }
+
+  return withGeometry.map((row) => {
+    const { event, resolvedIsSpan, resolvedYearsAgo, resolvedStartPos, resolvedEndPos } = row
+
+    if (resolvedIsSpan && resolvedEndPos !== null) {
+      const slot = nextSpanSlot++
+      const spanLaneRing = Math.floor(slot / 2) + 1
+      const spanLaneDirection = slot % 2 === 0 ? -1 : 1
+      const spanVisualLane = slot
+      return {
+        ...event,
+        isSpan: true,
+        yearsAgo: resolvedYearsAgo,
+        startPos: resolvedStartPos,
+        endPos: resolvedEndPos,
+        spanLaneIndex: slot,
+        spanVisualLane,
+        spanLaneRing,
+        spanLaneDirection,
+        spanLaneCount: totalSpanSlots,
+        spanEffectiveLaneCount: Math.max(totalSpanSlots, 1)
+      }
+    }
+
+    const slot = nextPointSlot++
+    const pointLaneRing = Math.floor(slot / 2) + 1
+    const pointLaneDirection = slot % 2 === 0 ? -1 : 1
+    const pointVisualLane = slot
+    return {
+      ...event,
+      isSpan: false,
+      yearsAgo: resolvedYearsAgo,
+      startPos: resolvedStartPos,
+      endPos: null,
+      pointLaneIndex: slot,
+      pointVisualLane,
+      pointLaneRing,
+      pointLaneDirection,
+      pointLaneCount: totalPointSlots,
+      pointEffectiveLaneCount: Math.max(totalPointSlots, 1)
+    }
+  })
 }
 
 const getValueAtOrBeforeYear = (valuesByYear, sortedYears, targetYear) => {
@@ -197,7 +307,8 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   onGameGuessMove,
   onGameGuessPlace,
   onTimelineClick,
-  gameReveal = null
+  gameReveal = null,
+  deferTimelineClickForDoubleZoom = false
 }, ref) {
   const [hoveredEvent, setHoveredEvent] = useState(null)
   const [timelineHover, setTimelineHover] = useState({ active: false, x: 0, percentage: 0, yearsAgo: 0 })
@@ -227,9 +338,16 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   const [viewEnd, setViewEnd] = useState(CURRENT_YEAR) // Default to year 0 (2026 years ago)
   const timelineRef = useRef(null)
   const eventsLayerRef = useRef(null)
+  const guessClickTimerRef = useRef(null)
   const inlineMapVideoRef = useRef(null)
   const modalMapVideoRef = useRef(null)
   const hiddenEventIdSet = useMemo(() => new Set(hiddenEventIds), [hiddenEventIds])
+
+  useEffect(() => () => {
+    if (guessClickTimerRef.current) {
+      clearTimeout(guessClickTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -634,37 +752,32 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     return laneAwareEvents.find((e) => e.id === subFocusParentId && e.isSpan) ?? null
   }, [laneAwareEvents, subFocusParentId])
 
-  const positionedSubEvents = useMemo(() => {
-    if (!subFocusParentId) return []
-    return events
-      .filter((e) => e.parent_id === subFocusParentId)
-      .map((event) => {
-        const startYearsAgo = eventToYearsAgo(event)
-        const endYearsAgo = eventEndToYearsAgo(event)
-        return { ...event, isSpan: false, yearsAgo: startYearsAgo, endYearsAgo }
-      })
-      .filter((event) => {
-        const startYearsAgo = event.yearsAgo
-        return startYearsAgo >= viewStart && startYearsAgo <= viewEnd
-      })
-      .map((event, index) => {
-        const startPos = yearToLinearPosition(event.yearsAgo, viewStart, viewEnd)
-        const visualLane = index % 2
-        const pointLaneDirection = visualLane === 0 ? -1 : 1
-        return {
-          ...event,
-          isSpan: false,
-          startPos,
-          endPos: null,
-          pointLaneIndex: 0,
-          pointVisualLane: visualLane,
-          pointLaneRing: 1,
-          pointLaneDirection,
-          pointLaneCount: 1,
-          pointEffectiveLaneCount: 2
-        }
-      })
-  }, [events, subFocusParentId, viewStart, viewEnd])
+  const positionedSubEvents = useMemo(
+    () => buildPositionedSubEventsForParent(subFocusParentId, events, viewStart, viewEnd),
+    [events, subFocusParentId, viewStart, viewEnd]
+  )
+
+  const selectedSpanShowsSubEventsOnTimeline = useMemo(() => {
+    if (!selectedEvent?.id) return false
+    const isSpan = selectedEvent.date_type === 'astronomical'
+      ? !!selectedEvent.astronomical_end_year
+      : !!selectedEvent.end_date
+    if (!isSpan) return false
+    return events.some((e) => e.parent_id === selectedEvent.id)
+  }, [selectedEvent, events])
+
+  const positionedSelectedSubEvents = useMemo(() => {
+    if (subFocusParentId) return []
+    if (!selectedSpanShowsSubEventsOnTimeline || !selectedEvent?.id) return []
+    return buildPositionedSubEventsForParent(selectedEvent.id, events, viewStart, viewEnd)
+  }, [
+    subFocusParentId,
+    selectedSpanShowsSubEventsOnTimeline,
+    selectedEvent,
+    events,
+    viewStart,
+    viewEnd
+  ])
 
   useEffect(() => {
     if (!subFocusParentId) return
@@ -697,6 +810,34 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     setManualCenterLabel('')
     setCenterInputError('')
   }, [])
+
+  // Same span contract as LogarithmicMinimap zoom in: center on a year, narrow the window.
+  const zoomTimelineToYearsAgo = useCallback((yearsAgo) => {
+    const clampedCenter = Math.max(DEFAULT_MIN_YEARS, Math.min(DEFAULT_MAX_YEARS, yearsAgo))
+    const halfSpan = (viewEnd - viewStart) / 2
+    const newHalfSpan = halfSpan * 0.7
+    const totalRange = DEFAULT_MAX_YEARS - DEFAULT_MIN_YEARS
+    const safeHalfSpan = Math.min(Math.max(newHalfSpan, 0), totalRange / 2)
+
+    let start = clampedCenter - safeHalfSpan
+    let end = clampedCenter + safeHalfSpan
+
+    if (start < DEFAULT_MIN_YEARS) {
+      const shift = DEFAULT_MIN_YEARS - start
+      start = DEFAULT_MIN_YEARS
+      end = Math.min(DEFAULT_MAX_YEARS, end + shift)
+    }
+    if (end > DEFAULT_MAX_YEARS) {
+      const shift = end - DEFAULT_MAX_YEARS
+      end = DEFAULT_MAX_YEARS
+      start = Math.max(DEFAULT_MIN_YEARS, start - shift)
+    }
+
+    setViewStart(start)
+    setViewEnd(end)
+    setManualCenterLabel('')
+    setCenterInputError('')
+  }, [viewStart, viewEnd])
 
   // Reset view to show all events
   const handleReset = useCallback(() => {
@@ -798,16 +939,42 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   }, [])
 
   const handleTimelineClick = useCallback(() => {
-    if (timelineHover.active) {
-      const guessPercentage = yearToLinearPosition(timelineHover.yearsAgo, viewStart, viewEnd)
-
-      onGameGuessPlace?.({
-        percentage: guessPercentage,
-        yearsAgo: timelineHover.yearsAgo
-      })
+    const runClickActions = () => {
+      if (timelineHover.active) {
+        const guessPercentage = yearToLinearPosition(timelineHover.yearsAgo, viewStart, viewEnd)
+        onGameGuessPlace?.({
+          percentage: guessPercentage,
+          yearsAgo: timelineHover.yearsAgo
+        })
+      }
+      onTimelineClick?.()
     }
-    onTimelineClick?.()
-  }, [timelineHover, onGameGuessPlace, onTimelineClick, viewStart, viewEnd])
+
+    if (onGameGuessPlace && deferTimelineClickForDoubleZoom) {
+      if (guessClickTimerRef.current) clearTimeout(guessClickTimerRef.current)
+      guessClickTimerRef.current = setTimeout(() => {
+        guessClickTimerRef.current = null
+        runClickActions()
+      }, TIMELINE_GUESS_CLICK_DEFER_MS)
+      return
+    }
+
+    runClickActions()
+  }, [timelineHover, onGameGuessPlace, onTimelineClick, viewStart, viewEnd, deferTimelineClickForDoubleZoom])
+
+  const handleTimelineDoubleClick = useCallback((e) => {
+    e.preventDefault()
+    if (guessClickTimerRef.current) {
+      clearTimeout(guessClickTimerRef.current)
+      guessClickTimerRef.current = null
+    }
+    if (!eventsLayerRef.current) return
+    const rect = eventsLayerRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100))
+    const yearsAgo = linearPositionToYear(percentage, viewStart, viewEnd)
+    zoomTimelineToYearsAgo(yearsAgo)
+  }, [viewStart, viewEnd, zoomTimelineToYearsAgo])
 
   const formatHoverTime = (yearsAgo) => {
     if (yearsAgo <= CURRENT_YEAR) {
@@ -1390,6 +1557,8 @@ const HistoryArrow = forwardRef(function HistoryArrow({
             onMouseMove={handleTimelineMouseMove}
             onMouseLeave={handleTimelineMouseLeave}
             onClick={handleTimelineClick}
+            onDoubleClick={handleTimelineDoubleClick}
+            title="Double-click to zoom in on this date"
           >
             {subFocusParentId && focusParentLaneEvent ? (
               <div
@@ -1426,11 +1595,18 @@ const HistoryArrow = forwardRef(function HistoryArrow({
                 })()}
                 {positionedSubEvents.map((event) => {
                   const eventLabelColor = labelColorMap.get(event.label) || null
-                  const labelLaneBudget = Math.min(
-                    event.pointEffectiveLaneCount,
-                    isIphoneViewport ? IPHONE_VISIBLE_POINT_LABEL_LANES : DESKTOP_VISIBLE_POINT_LABEL_LANES
-                  )
-                  const shouldShowLabel = event.pointLaneIndex < labelLaneBudget
+                  const labelLaneBudget = event.isSpan
+                    ? Math.min(
+                        event.spanEffectiveLaneCount,
+                        isIphoneViewport ? IPHONE_VISIBLE_SPAN_LABEL_LANES : DESKTOP_VISIBLE_SPAN_LABEL_LANES
+                      )
+                    : Math.min(
+                        event.pointEffectiveLaneCount,
+                        isIphoneViewport ? IPHONE_VISIBLE_POINT_LABEL_LANES : DESKTOP_VISIBLE_POINT_LABEL_LANES
+                      )
+                  const shouldShowLabel = event.isSpan
+                    ? event.spanLaneIndex < labelLaneBudget
+                    : event.pointLaneIndex < labelLaneBudget
                   return (
                     <EventMarker
                       key={event.id}
@@ -1441,44 +1617,88 @@ const HistoryArrow = forwardRef(function HistoryArrow({
                       isSelected={selectedEvent?.id === event.id}
                       showLabel={shouldShowLabel}
                       labelColor={eventLabelColor}
-                      className={`event-point--sub-focus ${
-                        event.pointLaneDirection < 0 ? 'event-point--sub-focus-above' : 'event-point--sub-focus-below'
-                      }`}
+                      className={
+                        event.isSpan
+                          ? 'event-span--sub-focus'
+                          : `event-point--sub-focus ${
+                              event.pointLaneDirection < 0 ? 'event-point--sub-focus-above' : 'event-point--sub-focus-below'
+                            }`
+                      }
                     />
                   )
                 })}
               </div>
             ) : !subFocusParentId ? (
-              laneAwareEvents.map(event => {
-                const eventLabelColor = labelColorMap.get(event.label) || null
-                const labelLaneBudget = event.isSpan
-                  ? Math.min(
-                      event.spanEffectiveLaneCount,
-                      isIphoneViewport ? IPHONE_VISIBLE_SPAN_LABEL_LANES : DESKTOP_VISIBLE_SPAN_LABEL_LANES
-                    )
-                  : Math.min(
-                      event.pointEffectiveLaneCount,
-                      isIphoneViewport ? IPHONE_VISIBLE_POINT_LABEL_LANES : DESKTOP_VISIBLE_POINT_LABEL_LANES
-                    )
-                const shouldShowLabel = event.isSpan
-                  ? event.spanLaneIndex < labelLaneBudget
-                  : event.pointLaneIndex < labelLaneBudget
+              <>
+                {laneAwareEvents.map(event => {
+                  const eventLabelColor = labelColorMap.get(event.label) || null
+                  const labelLaneBudget = event.isSpan
+                    ? Math.min(
+                        event.spanEffectiveLaneCount,
+                        isIphoneViewport ? IPHONE_VISIBLE_SPAN_LABEL_LANES : DESKTOP_VISIBLE_SPAN_LABEL_LANES
+                      )
+                    : Math.min(
+                        event.pointEffectiveLaneCount,
+                        isIphoneViewport ? IPHONE_VISIBLE_POINT_LABEL_LANES : DESKTOP_VISIBLE_POINT_LABEL_LANES
+                      )
+                  const shouldShowLabel = event.isSpan
+                    ? event.spanLaneIndex < labelLaneBudget
+                    : event.pointLaneIndex < labelLaneBudget
 
-                return (
-                  <EventMarker
-                    key={event.id}
-                    event={event}
-                    onHover={handleEventHover}
-                    onClick={onEventClick}
-                    isHovered={hoveredEvent?.id === event.id}
-                    isSelected={selectedEvent?.id === event.id}
-                    showLabel={shouldShowLabel}
-                    labelColor={eventLabelColor}
-                    spanLongHoverMs={event.isSpan ? SPAN_SUB_FOCUS_HOVER_MS : null}
-                    onSpanLongHoverComplete={event.isSpan ? handleSpanSubFocusComplete : null}
-                  />
-                )
-              })
+                  return (
+                    <EventMarker
+                      key={event.id}
+                      event={event}
+                      onHover={handleEventHover}
+                      onClick={onEventClick}
+                      isHovered={hoveredEvent?.id === event.id}
+                      isSelected={selectedEvent?.id === event.id}
+                      showLabel={shouldShowLabel}
+                      labelColor={eventLabelColor}
+                      spanLongHoverMs={event.isSpan ? SPAN_SUB_FOCUS_HOVER_MS : null}
+                      onSpanLongHoverComplete={event.isSpan ? handleSpanSubFocusComplete : null}
+                    />
+                  )
+                })}
+                {positionedSelectedSubEvents.length > 0 && (
+                  <div className="timeline-sub-focus timeline-sub-focus--additive">
+                    {positionedSelectedSubEvents.map((event) => {
+                      const eventLabelColor = labelColorMap.get(event.label) || null
+                      const labelLaneBudget = event.isSpan
+                        ? Math.min(
+                            event.spanEffectiveLaneCount,
+                            isIphoneViewport ? IPHONE_VISIBLE_SPAN_LABEL_LANES : DESKTOP_VISIBLE_SPAN_LABEL_LANES
+                          )
+                        : Math.min(
+                            event.pointEffectiveLaneCount,
+                            isIphoneViewport ? IPHONE_VISIBLE_POINT_LABEL_LANES : DESKTOP_VISIBLE_POINT_LABEL_LANES
+                          )
+                      const shouldShowLabel = event.isSpan
+                        ? event.spanLaneIndex < labelLaneBudget
+                        : event.pointLaneIndex < labelLaneBudget
+                      return (
+                        <EventMarker
+                          key={event.id}
+                          event={event}
+                          onHover={handleEventHover}
+                          onClick={onEventClick}
+                          isHovered={hoveredEvent?.id === event.id}
+                          isSelected={selectedEvent?.id === event.id}
+                          showLabel={shouldShowLabel}
+                          labelColor={eventLabelColor}
+                          className={
+                            event.isSpan
+                              ? 'event-span--sub-focus'
+                              : `event-point--sub-focus ${
+                                  event.pointLaneDirection < 0 ? 'event-point--sub-focus-above' : 'event-point--sub-focus-below'
+                                }`
+                          }
+                        />
+                      )
+                    })}
+                  </div>
+                )}
+              </>
             ) : null}
             {ghostMarkerEvent && (
               <EventMarker

@@ -356,6 +356,16 @@
   color: #fca5a5;
 }
 
+.event-type-badge.temporarily-hidden {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
+.event-card--temporarily-hidden {
+  opacity: 0.75;
+  border-style: dashed;
+}
+
 .event-card h3 {
   font-size: 1.2rem;
   color: var(--color-text);

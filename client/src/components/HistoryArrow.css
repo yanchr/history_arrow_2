@@ -637,6 +637,27 @@
   /* Fine-tuning knobs for sub-event marker vertical alignment */
   --sub-focus-above-nudge: -20px; /* positive = move downward */
   --sub-focus-below-nudge: -17px; /* negative = move upward */
+  /* Widen lane steps so stacked sub-events (extra rings) read clearly */
+  --point-lane-gap: calc(var(--point-lane-gap, 20px) + 10px);
+  --span-lane-gap: calc(var(--span-lane-gap, 20px) + 8px);
+}
+
+/* Sub-events for a selected span: same visuals as hover sub-focus, but other events stay visible */
+.timeline-sub-focus--additive {
+  pointer-events: none;
+}
+
+.timeline-sub-focus--additive .event-span,
+.timeline-sub-focus--additive .event-point {
+  pointer-events: auto;
+}
+
+.event-span--sub-focus {
+  margin-top: -14px;
+}
+
+.event-span--sub-focus .span-body {
+  animation: sub-span-pop 0.35s ease-out both;
 }
 
 .event-point--sub-focus .point-marker {
@@ -681,6 +702,17 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes sub-span-pop {
+  from {
+    opacity: 0;
+    transform: scaleX(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
   }
 }
 

@@ -40,7 +40,19 @@ function Home() {
   const [filterMode, setFilterMode] = useState('include')
   const [editingEvent, setEditingEvent] = useState(null)
   const [editError, setEditError] = useState('')
+  const [temporarilyHiddenEventIds, setTemporarilyHiddenEventIds] = useState([])
   const timelineRef = useRef(null)
+
+  const hiddenEventIdSet = useMemo(
+    () => new Set(temporarilyHiddenEventIds),
+    [temporarilyHiddenEventIds]
+  )
+
+  const toggleEventHidden = useCallback((eventId) => {
+    setTemporarilyHiddenEventIds((prev) =>
+      prev.includes(eventId) ? prev.filter((id) => id !== eventId) : [...prev, eventId]
+    )
+  }, [])
 
   // Handle event click to select/deselect
   const handleEventClick = (event) => {
@@ -122,14 +134,18 @@ function Home() {
   }, [displayEvents, activeLabels, filterMode])
 
   const searchFilteredEvents = useMemo(() => {
-    const base = filteredEvents
-    if (!searchQuery.trim()) return base
-    const query = searchQuery.toLowerCase()
-    return base.filter(event =>
-      event.title.toLowerCase().includes(query) ||
-      (canViewEventContent(event, isAdmin) && event.description && event.description.toLowerCase().includes(query))
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) {
+      return filteredEvents.filter((event) => !hiddenEventIdSet.has(event.id))
+    }
+    return filteredEvents.filter(
+      (event) =>
+        event.title.toLowerCase().includes(query) ||
+        (canViewEventContent(event, isAdmin) &&
+          event.description &&
+          event.description.toLowerCase().includes(query))
     )
-  }, [filteredEvents, searchQuery, isAdmin])
+  }, [filteredEvents, searchQuery, isAdmin, hiddenEventIdSet])
 
   // Timeline follows label filters only; search applies to the "All Events" list, not the arrow
   const timelineEvents = useMemo(
@@ -209,6 +225,7 @@ function Home() {
             onEventClick={handleEventClick}
             onVisibleEventsChange={handleVisibleEventsChange}
             labelColorMap={labelColorMap}
+            hiddenEventIds={temporarilyHiddenEventIds}
             titleHint="Hover over events to preview, or click to view details."
           />
         )}
@@ -230,6 +247,8 @@ function Home() {
               labelColor={selectedEvent?.label ? labelColorMap.get(selectedEvent.label) : null}
               onClose={handleCloseSelectedEvent}
               onEdit={isAuthenticated && isAdmin ? handleEditEvent : undefined}
+              isHidden={hiddenEventIdSet.has(selectedEvent.id)}
+              onToggleHidden={() => toggleEventHidden(selectedEvent.id)}
               isAdmin={isAdmin}
             />
           </motion.section>
@@ -309,11 +328,12 @@ function Home() {
             const eventIsSpan = isEventSpan(event)
             const startDateDisplay = formatEventDate(event, false)
             const endDateDisplay = formatEventDate(event, true)
+            const isTemporarilyHidden = hiddenEventIdSet.has(event.id)
             
             return (
               <motion.div
                 key={event.id}
-                className={`event-card ${selectedEvent?.id === event.id ? 'event-card--selected' : ''}`}
+                className={`event-card ${selectedEvent?.id === event.id ? 'event-card--selected' : ''} ${isTemporarilyHidden ? 'event-card--temporarily-hidden' : ''}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(0.1 * index, 0.5), duration: 0.3 }}
@@ -329,6 +349,9 @@ function Home() {
                     </span>
                     {isAdmin && !event.is_published && (
                       <span className="event-type-badge unpublished">Unpublished</span>
+                    )}
+                    {isTemporarilyHidden && (
+                      <span className="event-type-badge temporarily-hidden">Hidden</span>
                     )}
                     {event.label && (() => {
                       const color = labelColorMap.get(event.label)

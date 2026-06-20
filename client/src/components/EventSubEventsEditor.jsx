@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import EventForm from './EventForm'
-import { formatEventDate } from '../utils/dateUtils'
+import { formatEventDateRange } from '../utils/dateUtils'
 import { getSubEventsForParent } from '../utils/eventHierarchy'
 import './EventSubEventsEditor.css'
 
@@ -116,7 +116,7 @@ function EventSubEventsEditor({
         <div className="event-sub-events-header">
           <h3 className="event-sub-events-title">Sub-events</h3>
           <p className="event-sub-events-hint">
-            Point-in-time moments along this span. They appear on long hover on the timeline and in the detail view.
+            Moments or shorter spans along this parent span. They appear on long hover on the timeline and in the detail view.
           </p>
         </div>
         <div className="event-sub-events-body">
@@ -128,7 +128,7 @@ function EventSubEventsEditor({
                 <li key={sub.id} className="event-sub-events-item">
                   <div className="event-sub-events-item-main">
                     <strong>{sub.title}</strong>
-                    <span className="event-sub-events-date">{formatEventDate(sub, false)}</span>
+                    <span className="event-sub-events-date">{formatEventDateRange(sub)}</span>
                   </div>
                   <div className="event-sub-events-item-actions">
                     <button

@@ -75,6 +75,19 @@ export function formatEventDate(event, isEnd = false) {
   return formatDisplayDate(dateStr)
 }
 
+/** Start–end label for span events; single date for point events. */
+export function formatEventDateRange(event) {
+  if (!event) return ''
+  const isSpan = event.date_type === 'astronomical'
+    ? !!event.astronomical_end_year
+    : !!event.end_date
+  if (!isSpan) return formatEventDate(event, false) || ''
+  const startLabel = formatEventDate(event, false)
+  const endLabel = formatEventDate(event, true)
+  if (startLabel && endLabel) return `${startLabel} – ${endLabel}`
+  return startLabel || endLabel || ''
+}
+
 /**
  * Format years ago as a human-readable string
  * @param {number} yearsAgo 
