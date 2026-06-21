@@ -319,7 +319,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   const [centerInputError, setCenterInputError] = useState('')
   const [manualCenterLabel, setManualCenterLabel] = useState('')
   const [isMapModalOpen, setIsMapModalOpen] = useState(false)
-  const [isHeaderExpanded, setIsHeaderExpanded] = useState(true)
+  const [isHeaderExpanded, setIsHeaderExpanded] = useState(false)
   const [mapMiniHover, setMapMiniHover] = useState({ active: false, percentage: 0 })
   const [lastTimelineYearsAgo, setLastTimelineYearsAgo] = useState(null)
   const [lastMapMiniPercentage, setLastMapMiniPercentage] = useState(null)
@@ -756,28 +756,6 @@ const HistoryArrow = forwardRef(function HistoryArrow({
     () => buildPositionedSubEventsForParent(subFocusParentId, events, viewStart, viewEnd),
     [events, subFocusParentId, viewStart, viewEnd]
   )
-
-  const selectedSpanShowsSubEventsOnTimeline = useMemo(() => {
-    if (!selectedEvent?.id) return false
-    const isSpan = selectedEvent.date_type === 'astronomical'
-      ? !!selectedEvent.astronomical_end_year
-      : !!selectedEvent.end_date
-    if (!isSpan) return false
-    return events.some((e) => e.parent_id === selectedEvent.id)
-  }, [selectedEvent, events])
-
-  const positionedSelectedSubEvents = useMemo(() => {
-    if (subFocusParentId) return []
-    if (!selectedSpanShowsSubEventsOnTimeline || !selectedEvent?.id) return []
-    return buildPositionedSubEventsForParent(selectedEvent.id, events, viewStart, viewEnd)
-  }, [
-    subFocusParentId,
-    selectedSpanShowsSubEventsOnTimeline,
-    selectedEvent,
-    events,
-    viewStart,
-    viewEnd
-  ])
 
   useEffect(() => {
     if (!subFocusParentId) return
@@ -1660,44 +1638,6 @@ const HistoryArrow = forwardRef(function HistoryArrow({
                     />
                   )
                 })}
-                {positionedSelectedSubEvents.length > 0 && (
-                  <div className="timeline-sub-focus timeline-sub-focus--additive">
-                    {positionedSelectedSubEvents.map((event) => {
-                      const eventLabelColor = labelColorMap.get(event.label) || null
-                      const labelLaneBudget = event.isSpan
-                        ? Math.min(
-                            event.spanEffectiveLaneCount,
-                            isIphoneViewport ? IPHONE_VISIBLE_SPAN_LABEL_LANES : DESKTOP_VISIBLE_SPAN_LABEL_LANES
-                          )
-                        : Math.min(
-                            event.pointEffectiveLaneCount,
-                            isIphoneViewport ? IPHONE_VISIBLE_POINT_LABEL_LANES : DESKTOP_VISIBLE_POINT_LABEL_LANES
-                          )
-                      const shouldShowLabel = event.isSpan
-                        ? event.spanLaneIndex < labelLaneBudget
-                        : event.pointLaneIndex < labelLaneBudget
-                      return (
-                        <EventMarker
-                          key={event.id}
-                          event={event}
-                          onHover={handleEventHover}
-                          onClick={onEventClick}
-                          isHovered={hoveredEvent?.id === event.id}
-                          isSelected={selectedEvent?.id === event.id}
-                          showLabel={shouldShowLabel}
-                          labelColor={eventLabelColor}
-                          className={
-                            event.isSpan
-                              ? 'event-span--sub-focus'
-                              : `event-point--sub-focus ${
-                                  event.pointLaneDirection < 0 ? 'event-point--sub-focus-above' : 'event-point--sub-focus-below'
-                                }`
-                          }
-                        />
-                      )
-                    })}
-                  </div>
-                )}
               </>
             ) : null}
             {ghostMarkerEvent && (
