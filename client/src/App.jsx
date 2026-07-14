@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
+import './utils/timelineAppearance'
 import Home from './pages/Home'
 import Game from './pages/Game'
 import Admin from './pages/Admin'

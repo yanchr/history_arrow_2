@@ -302,6 +302,92 @@
   height: 16px;
 }
 
+.timeline-bg-control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.timeline-bg-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.timeline-bg-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.timeline-bg-picker {
+  width: 34px;
+  height: 34px;
+  padding: 0.15rem;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.6);
+  cursor: pointer;
+}
+
+.timeline-bg-picker::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.timeline-bg-picker::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+.timeline-bg-hex {
+  width: 92px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  padding: 0 0.6rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.timeline-bg-error {
+  color: #fca5a5;
+  font-size: 0.72rem;
+}
+
+.timeline-label-size-row {
+  width: 100%;
+  max-width: 220px;
+}
+
+.timeline-label-size-slider {
+  flex: 1;
+  min-width: 88px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.timeline-label-size-input {
+  width: 58px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  padding: 0 0.45rem;
+  text-align: right;
+}
+
+.timeline-label-size-suffix {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary, #94a3b8);
+}
+
 .timeline-wrapper {
   position: relative;
   height: calc(
@@ -310,12 +396,7 @@
   );
   margin: 1rem 0;
   overflow: hidden;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(99, 102, 241, 0.03) 50%,
-    transparent 100%
-  );
+  background: var(--timeline-custom-bg, var(--color-bg));
   border-radius: var(--radius-lg);
   cursor: crosshair;
 }

@@ -1,5 +1,8 @@
 .selected-event-detail {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+  background: var(
+    --timeline-custom-bg,
+    linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98))
+  );
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 16px;
   margin: 1.5rem auto;
@@ -67,6 +70,12 @@
   border: 1px solid rgba(239, 68, 68, 0.35);
 }
 
+.event-badge.local {
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.3), rgba(148, 163, 184, 0.1));
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
 .selected-event-actions {
   display: flex;
   gap: 0.5rem;
@@ -99,6 +108,34 @@
 
 .edit-btn:hover svg {
   color: #93c5fd;
+}
+
+.delete-btn {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.delete-btn svg {
+  width: 18px;
+  height: 18px;
+  color: #f87171;
+  transition: color 0.2s ease;
+}
+
+.delete-btn:hover svg {
+  color: #fca5a5;
 }
 
 .hide-btn {

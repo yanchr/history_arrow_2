@@ -1,5 +1,5 @@
 export function canViewEventContent(event, isAdmin = false) {
-  return Boolean(isAdmin || event?.is_published)
+  return Boolean(isAdmin || event?.is_published || event?.is_local)
 }
 
 export function getRestrictedContentMessage() {

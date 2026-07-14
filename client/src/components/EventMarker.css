@@ -51,10 +51,10 @@
 
 .point-label {
   position: absolute;
-  top: -28px;
+  top: calc(-28px * var(--event-label-scale, 1));
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--event-label-scale, 1));
   font-weight: 500;
   color: var(--color-text);
   white-space: nowrap;
@@ -68,7 +68,7 @@
 
 .point-label-below {
   top: auto;
-  bottom: -28px;
+  bottom: calc(-28px * var(--event-label-scale, 1));
 }
 
 .event-point.hovered .point-label,
@@ -138,10 +138,10 @@
 
 .span-label {
   position: absolute;
-  top: -20px;
+  top: calc(-20px * var(--event-label-scale, 1));
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.7rem;
+  font-size: calc(0.7rem * var(--event-label-scale, 1));
   font-weight: 500;
   color: var(--color-text);
   white-space: nowrap;
@@ -155,7 +155,7 @@
 
 .span-label-below {
   top: auto;
-  bottom: -20px;
+  bottom: calc(-20px * var(--event-label-scale, 1));
 }
 
 .event-span.hovered .span-label,
@@ -302,4 +302,22 @@
 .event-span.game-overlay-actual .span-line,
 .event-span.game-overlay-actual .span-cap {
   box-shadow: 0 0 14px color-mix(in srgb, var(--label-color, var(--color-accent)) 65%, transparent);
+}
+
+.event-point.event-marker--lane-dragging,
+.event-span.event-marker--lane-dragging {
+  cursor: grabbing;
+  z-index: 40;
+  transition: none;
+}
+
+.event-point.event-marker--lane-dragging .point-inner,
+.event-span.event-marker--lane-dragging .span-body {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.event-point.event-marker--lane-draggable:not(.event-marker--lane-dragging),
+.event-span.event-marker--lane-draggable:not(.event-marker--lane-dragging) {
+  cursor: grab;
+  transition: top 0.2s ease;
 }

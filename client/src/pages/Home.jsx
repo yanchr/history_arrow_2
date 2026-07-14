@@ -10,6 +10,7 @@ import EventForm from '../components/EventForm'
 import EventSubEventsEditor from '../components/EventSubEventsEditor'
 import { formatEventDate } from '../utils/dateUtils'
 import { canViewEventContent, getRestrictedContentMessage } from '../utils/contentVisibility'
+import { isLocalEvent } from '../utils/localEvents'
 import { sampleEvents } from '../data/sampleEvents'
 import { getEventsForTimeline } from '../utils/eventHierarchy'
 import './Home.css'
@@ -29,8 +30,18 @@ function Home() {
     path: '/'
   })
 
-  const { events, loading, error, updateEvent, createEvent, deleteEvent, refetch } = useEvents()
-  const { isAuthenticated, isAdmin } = useAuth()
+  const {
+    events,
+    localEvents,
+    loading,
+    error,
+    updateEvent,
+    createEvent,
+    deleteEvent,
+    refetch,
+    syncLocalEventsToRemote
+  } = useEvents()
+  const { isAdmin } = useAuth()
   const { labels, labelColorMap } = useLabels()
   const [displayEvents, setDisplayEvents] = useState([])
   const [selectedEvent, setSelectedEvent] = useState(null)
@@ -38,14 +49,21 @@ function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeLabels, setActiveLabels] = useState([])
   const [filterMode, setFilterMode] = useState('include')
+  const [showForm, setShowForm] = useState(false)
   const [editingEvent, setEditingEvent] = useState(null)
   const [editError, setEditError] = useState('')
   const [temporarilyHiddenEventIds, setTemporarilyHiddenEventIds] = useState([])
   const timelineRef = useRef(null)
+  const syncPromptShownRef = useRef(false)
 
   const hiddenEventIdSet = useMemo(
     () => new Set(temporarilyHiddenEventIds),
     [temporarilyHiddenEventIds]
+  )
+
+  const canEditEvent = useCallback(
+    (event) => Boolean(event && (isAdmin || isLocalEvent(event))),
+    [isAdmin]
   )
 
   const toggleEventHidden = useCallback((eventId) => {
@@ -73,25 +91,53 @@ function Home() {
     setSelectedEvent(null)
   }
 
+  const handleCreateEvent = useCallback(() => {
+    setEditingEvent(null)
+    setEditError('')
+    setShowForm(true)
+  }, [])
+
   const handleEditEvent = useCallback((event) => {
     setEditingEvent(event)
     setEditError('')
+    setShowForm(true)
   }, [])
 
-  const handleEditSubmit = async (formData) => {
+  const handleDeleteEvent = useCallback(async (event) => {
+    if (!window.confirm(`Are you sure you want to delete "${event.title}"?`)) {
+      return
+    }
+    try {
+      await deleteEvent(event.id)
+      if (selectedEvent?.id === event.id) {
+        setSelectedEvent(null)
+      }
+    } catch (err) {
+      window.alert(err.message)
+    }
+  }, [deleteEvent, selectedEvent])
+
+  const handleFormSubmit = async (formData) => {
     try {
       setEditError('')
-      const updated = await updateEvent(editingEvent.id, formData)
-      setEditingEvent(null)
-      if (selectedEvent?.id === updated.id) {
-        setSelectedEvent(updated)
+      if (editingEvent) {
+        const updated = await updateEvent(editingEvent.id, formData)
+        if (selectedEvent?.id === updated.id) {
+          setSelectedEvent(updated)
+        }
+      } else {
+        const created = await createEvent(formData)
+        setSelectedEvent(created)
       }
+      setShowForm(false)
+      setEditingEvent(null)
     } catch (err) {
       setEditError(err.message)
     }
   }
 
-  const handleEditCancel = () => {
+  const handleFormCancel = () => {
+    setShowForm(false)
     setEditingEvent(null)
     setEditError('')
   }
@@ -116,6 +162,30 @@ function Home() {
       setDisplayEvents(sampleEvents)
     }
   }, [events, loading])
+
+  // Offer sync once per session when an admin has local drafts
+  useEffect(() => {
+    if (!isAdmin || localEvents.length === 0 || syncPromptShownRef.current) {
+      return
+    }
+    syncPromptShownRef.current = true
+    const count = localEvents.length
+    const accepted = window.confirm(
+      `You have ${count} local event${count === 1 ? '' : 's'} on this device. Upload them to the shared database?`
+    )
+    if (!accepted) return
+
+    ;(async () => {
+      try {
+        await syncLocalEventsToRemote()
+        await refetch()
+      } catch (err) {
+        window.alert(err.message || 'Failed to sync local events')
+        // Allow prompting again if sync failed
+        syncPromptShownRef.current = false
+      }
+    })()
+  }, [isAdmin, localEvents, syncLocalEventsToRemote, refetch])
 
   const filteredEvents = useMemo(() => {
     const topLevel = displayEvents.filter((e) => !e.parent_id)
@@ -152,6 +222,15 @@ function Home() {
     () => getEventsForTimeline(displayEvents, filteredEvents),
     [displayEvents, filteredEvents]
   )
+
+  // Keep selectedEvent in sync when local/remote lists refresh
+  useEffect(() => {
+    if (!selectedEvent) return
+    const fresh = displayEvents.find((e) => e.id === selectedEvent.id)
+    if (fresh && fresh !== selectedEvent) {
+      setSelectedEvent(fresh)
+    }
+  }, [displayEvents, selectedEvent])
 
   return (
     <div className="home-page">
@@ -202,6 +281,16 @@ function Home() {
         )}
       </div>
 
+      <div className="home-toolbar">
+        <button type="button" className="btn btn-primary" onClick={handleCreateEvent}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="btn-icon">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Add Event
+          {!isAdmin && <span style={{ opacity: 0.85, fontWeight: 400 }}> (local)</span>}
+        </button>
+      </div>
+
       <motion.section
         className="timeline-section"
         initial={{ opacity: 0, y: 30 }}
@@ -213,7 +302,7 @@ function Home() {
             <div className="loading-spinner" />
             <p>Loading timeline...</p>
           </div>
-        ) : error ? (
+        ) : error && displayEvents.length === 0 ? (
           <div className="error-state">
             <p>Using sample data (API not connected)</p>
           </div>
@@ -246,7 +335,8 @@ function Home() {
               allEvents={displayEvents}
               labelColor={selectedEvent?.label ? labelColorMap.get(selectedEvent.label) : null}
               onClose={handleCloseSelectedEvent}
-              onEdit={isAuthenticated && isAdmin ? handleEditEvent : undefined}
+              onEdit={canEditEvent(selectedEvent) ? handleEditEvent : undefined}
+              onDelete={canEditEvent(selectedEvent) ? handleDeleteEvent : undefined}
               isHidden={hiddenEventIdSet.has(selectedEvent.id)}
               onToggleHidden={() => toggleEventHidden(selectedEvent.id)}
               isAdmin={isAdmin}
@@ -256,13 +346,13 @@ function Home() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {editingEvent && (
+        {showForm && (
           <motion.div
             className="form-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={handleEditCancel}
+            onClick={handleFormCancel}
           >
             <motion.div
               className="form-modal"
@@ -273,8 +363,8 @@ function Home() {
             >
               <EventForm
                 event={editingEvent}
-                onSubmit={handleEditSubmit}
-                onCancel={handleEditCancel}
+                onSubmit={handleFormSubmit}
+                onCancel={handleFormCancel}
                 error={editError}
                 labels={labels}
                 beforeFormActions={
@@ -347,7 +437,10 @@ function Home() {
                     <span className={`event-type-badge ${eventIsSpan ? 'span' : 'point'}`}>
                       {eventIsSpan ? 'Span' : 'Point'}
                     </span>
-                    {isAdmin && !event.is_published && (
+                    {isLocalEvent(event) && (
+                      <span className="event-type-badge local">Local</span>
+                    )}
+                    {isAdmin && !event.is_published && !isLocalEvent(event) && (
                       <span className="event-type-badge unpublished">Unpublished</span>
                     )}
                     {isTemporarilyHidden && (

@@ -84,6 +84,21 @@
   gap: 0.5rem;
   flex-wrap: wrap;
   margin-bottom: 1.5rem;
+  padding: 0 1rem;
+}
+
+.home-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 0 1rem 0.75rem;
+}
+
+.home-toolbar .btn-icon {
+  width: 1rem;
+  height: 1rem;
 }
 
 .label-filter-bar .filter-label-text {
@@ -354,6 +369,11 @@
 .event-type-badge.unpublished {
   background: rgba(239, 68, 68, 0.2);
   color: #fca5a5;
+}
+
+.event-type-badge.local {
+  background: rgba(148, 163, 184, 0.25);
+  color: #cbd5e1;
 }
 
 .event-type-badge.temporarily-hidden {

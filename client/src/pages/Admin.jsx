@@ -72,8 +72,10 @@ function Admin() {
 
   const hasText = (value) => typeof value === 'string' && value.trim().length > 0
 
-  // Filter events based on search and content workflow filters
+  // Filter events based on search and content workflow filters (remote only)
   const filteredEvents = events.filter(event => {
+    if (event.is_local) return false
+
     const query = searchQuery.trim().toLowerCase()
     const matchesSearch = !query || (
       event.title?.toLowerCase().includes(query) ||

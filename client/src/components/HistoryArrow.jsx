@@ -14,6 +14,12 @@ import {
   DEFAULT_MAX_YEARS
 } from '../utils/logScaleUtils'
 import './HistoryArrow.css'
+import {
+  DEFAULT_TIMELINE_BG_COLOR,
+  loadTimelineBackgroundColor,
+  normalizeHexColor,
+  persistTimelineBackgroundColor
+} from '../utils/timelineAppearance'
 
 // Current date as a fractional year (e.g. 2026.14 for mid-February 2026)
 const NOW = new Date()
@@ -66,6 +72,73 @@ const POPULATION_MAX_YEAR = 2022
 const SPAN_SUB_FOCUS_HOVER_MS = 2000
 /** Delay single-click guess so double-click can zoom without placing a guess (game mode). */
 const TIMELINE_GUESS_CLICK_DEFER_MS = 280
+const LANE_OVERRIDES_STORAGE_KEY = 'history-arrow-lane-overrides'
+const EVENT_LABEL_SCALE_STORAGE_KEY = 'history-arrow-event-label-scale'
+const DEFAULT_EVENT_LABEL_SCALE = 1
+const MIN_EVENT_LABEL_SCALE = 0.7
+const MAX_EVENT_LABEL_SCALE = 1.5
+
+const visualLaneToRingAndDirection = (visualLane) => ({
+  laneRing: Math.floor(visualLane / 2) + 1,
+  laneDirection: visualLane % 2 === 0 ? -1 : 1
+})
+
+const visualLaneToOffsetPx = (visualLane, gap) => {
+  const { laneRing, laneDirection } = visualLaneToRingAndDirection(visualLane)
+  return laneDirection * laneRing * gap
+}
+
+const snapOffsetPxToVisualLane = (offsetPx, gap, maxVisualLane) => {
+  let bestLane = 0
+  let bestDistance = Infinity
+
+  for (let lane = 0; lane <= maxVisualLane; lane += 1) {
+    const distance = Math.abs(visualLaneToOffsetPx(lane, gap) - offsetPx)
+    if (distance < bestDistance) {
+      bestDistance = distance
+      bestLane = lane
+    }
+  }
+
+  return bestLane
+}
+
+const loadLaneOverrides = () => {
+  try {
+    const raw = sessionStorage.getItem(LANE_OVERRIDES_STORAGE_KEY)
+    if (!raw) {
+      return { span: new Map(), point: new Map() }
+    }
+
+    const parsed = JSON.parse(raw)
+    return {
+      span: new Map(
+        Object.entries(parsed.span || {}).map(([id, lane]) => [id, Number(lane)])
+      ),
+      point: new Map(
+        Object.entries(parsed.point || {}).map(([id, lane]) => [id, Number(lane)])
+      )
+    }
+  } catch {
+    return { span: new Map(), point: new Map() }
+  }
+}
+
+const clampEventLabelScale = (value) => (
+  Math.min(MAX_EVENT_LABEL_SCALE, Math.max(MIN_EVENT_LABEL_SCALE, value))
+)
+
+const loadEventLabelScale = () => {
+  try {
+    const stored = sessionStorage.getItem(EVENT_LABEL_SCALE_STORAGE_KEY)
+    if (!stored) return DEFAULT_EVENT_LABEL_SCALE
+    const parsed = Number(stored)
+    if (!Number.isFinite(parsed)) return DEFAULT_EVENT_LABEL_SCALE
+    return clampEventLabelScale(parsed)
+  } catch {
+    return DEFAULT_EVENT_LABEL_SCALE
+  }
+}
 
 function isTopLevelTimelineEvent(event) {
   return !event?.parent_id
@@ -224,9 +297,9 @@ const formatPopulationFull = (populationThousands) => {
   return population.toLocaleString()
 }
 
-const estimateLabelWidthPx = (title, maxWidthPx) => {
+const estimateLabelWidthPx = (title, maxWidthPx, scale = 1) => {
   const safeTitle = typeof title === 'string' ? title : ''
-  const estimated = safeTitle.length * LABEL_CHAR_WIDTH_PX + LABEL_PADDING_PX
+  const estimated = safeTitle.length * LABEL_CHAR_WIDTH_PX * scale + LABEL_PADDING_PX
   return Math.min(maxWidthPx, Math.max(40, estimated))
 }
 
@@ -308,8 +381,23 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   onGameGuessPlace,
   onTimelineClick,
   gameReveal = null,
-  deferTimelineClickForDoubleZoom = false
+  deferTimelineClickForDoubleZoom = false,
+  enableLaneDrag = true
 }, ref) {
+  const initialLaneOverrides = useMemo(() => loadLaneOverrides(), [])
+  const [spanLaneOverrides, setSpanLaneOverrides] = useState(initialLaneOverrides.span)
+  const [pointLaneOverrides, setPointLaneOverrides] = useState(initialLaneOverrides.point)
+  const [laneDrag, setLaneDrag] = useState(null)
+  const [timelineBackgroundColor, setTimelineBackgroundColor] = useState(loadTimelineBackgroundColor)
+  const [timelineBackgroundHexInput, setTimelineBackgroundHexInput] = useState(
+    () => loadTimelineBackgroundColor() || DEFAULT_TIMELINE_BG_COLOR
+  )
+  const [timelineBackgroundError, setTimelineBackgroundError] = useState('')
+  const [eventLabelScale, setEventLabelScale] = useState(loadEventLabelScale)
+  const [eventLabelScaleInput, setEventLabelScaleInput] = useState(
+    () => String(Math.round(loadEventLabelScale() * 100))
+  )
+  const [eventLabelScaleError, setEventLabelScaleError] = useState('')
   const [hoveredEvent, setHoveredEvent] = useState(null)
   const [timelineHover, setTimelineHover] = useState({ active: false, x: 0, percentage: 0, yearsAgo: 0 })
   const [isIphoneViewport, setIsIphoneViewport] = useState(false)
@@ -339,6 +427,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   const timelineRef = useRef(null)
   const eventsLayerRef = useRef(null)
   const guessClickTimerRef = useRef(null)
+  const laneDragRef = useRef(null)
   const inlineMapVideoRef = useRef(null)
   const modalMapVideoRef = useRef(null)
   const hiddenEventIdSet = useMemo(() => new Set(hiddenEventIds), [hiddenEventIds])
@@ -348,6 +437,28 @@ const HistoryArrow = forwardRef(function HistoryArrow({
       clearTimeout(guessClickTimerRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    sessionStorage.setItem(
+      LANE_OVERRIDES_STORAGE_KEY,
+      JSON.stringify({
+        span: Object.fromEntries(spanLaneOverrides),
+        point: Object.fromEntries(pointLaneOverrides)
+      })
+    )
+  }, [spanLaneOverrides, pointLaneOverrides])
+
+  useEffect(() => {
+    persistTimelineBackgroundColor(timelineBackgroundColor)
+  }, [timelineBackgroundColor])
+
+  useEffect(() => {
+    if (eventLabelScale === DEFAULT_EVENT_LABEL_SCALE) {
+      sessionStorage.removeItem(EVENT_LABEL_SCALE_STORAGE_KEY)
+    } else {
+      sessionStorage.setItem(EVENT_LABEL_SCALE_STORAGE_KEY, String(eventLabelScale))
+    }
+  }, [eventLabelScale])
 
   useEffect(() => {
     let cancelled = false
@@ -630,7 +741,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
         const spanLeft = Math.min(event.startPos, event.endPos)
         const spanRight = Math.max(event.startPos, event.endPos)
         const spanCenter = (spanLeft + spanRight) / 2
-        const labelWidthPx = estimateLabelWidthPx(event.title, SPAN_LABEL_MAX_WIDTH_PX)
+        const labelWidthPx = estimateLabelWidthPx(event.title, SPAN_LABEL_MAX_WIDTH_PX, eventLabelScale)
         const labelWidthPercent = (labelWidthPx / eventsLayerWidth) * 100
         const labelLeft = spanCenter - labelWidthPercent / 2
         const labelRight = spanCenter + labelWidthPercent / 2
@@ -651,7 +762,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
       IPHONE_MAX_SPAN_LANES,
       DESKTOP_MAX_SPAN_LANES
     )
-  }, [positionedEvents, isIphoneViewport, eventsLayerWidth])
+  }, [positionedEvents, isIphoneViewport, eventsLayerWidth, eventLabelScale])
 
   const pointLaneLayout = useMemo(() => {
     const laneItems = positionedEvents
@@ -663,7 +774,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
         )
         const markerLeft = event.startPos - markerWidthPercent / 2
         const markerRight = event.startPos + markerWidthPercent / 2
-        const labelWidthPx = estimateLabelWidthPx(event.title, POINT_LABEL_MAX_WIDTH_PX)
+        const labelWidthPx = estimateLabelWidthPx(event.title, POINT_LABEL_MAX_WIDTH_PX, eventLabelScale)
         const labelWidthPercent = (labelWidthPx / eventsLayerWidth) * 100
         const labelLeft = event.startPos - labelWidthPercent / 2
         const labelRight = event.startPos + labelWidthPercent / 2
@@ -685,7 +796,7 @@ const HistoryArrow = forwardRef(function HistoryArrow({
       IPHONE_MAX_POINT_LANES,
       DESKTOP_MAX_POINT_LANES
     )
-  }, [positionedEvents, isIphoneViewport, eventsLayerWidth])
+  }, [positionedEvents, isIphoneViewport, eventsLayerWidth, eventLabelScale])
 
   const timelineLayoutStyle = useMemo(() => {
     const baseHeight = isIphoneViewport ? MOBILE_TIMELINE_BASE_HEIGHT : DESKTOP_TIMELINE_BASE_HEIGHT
@@ -711,41 +822,61 @@ const HistoryArrow = forwardRef(function HistoryArrow({
       '--point-lane-depth': pointLaneLayout.lanesPerSide,
       '--span-lane-count': spanLaneLayout.effectiveLaneCount,
       '--point-lane-count': pointLaneLayout.effectiveLaneCount,
-      '--timeline-lane-depth-px': `${laneDepthPx}px`
+      '--timeline-lane-depth-px': `${laneDepthPx}px`,
+      '--event-label-scale': eventLabelScale
     }
   }, [
     isIphoneViewport,
     spanLaneLayout.effectiveLaneCount,
-    pointLaneLayout.effectiveLaneCount
+    pointLaneLayout.effectiveLaneCount,
+    eventLabelScale
   ])
 
   const laneAwareEvents = useMemo(() => {
     return positionedEvents.map(event => {
       if (event.isSpan) {
         const spanLaneMeta = spanLaneLayout.laneMetadata.get(event.id)
+        const autoVisualLane = spanLaneMeta?.visualLane ?? 0
+        const visualLane = spanLaneOverrides.has(event.id)
+          ? spanLaneOverrides.get(event.id)
+          : autoVisualLane
+        const { laneRing, laneDirection } = visualLaneToRingAndDirection(visualLane)
+
         return {
           ...event,
           spanLaneIndex: spanLaneMeta?.laneIndex ?? 0,
-          spanVisualLane: spanLaneMeta?.visualLane ?? 0,
-          spanLaneRing: spanLaneMeta?.laneRing ?? 1,
-          spanLaneDirection: spanLaneMeta?.laneDirection ?? -1,
+          spanVisualLane: visualLane,
+          spanLaneRing: laneRing,
+          spanLaneDirection: laneDirection,
           spanLaneCount: spanLaneMeta?.laneCount ?? 1,
           spanEffectiveLaneCount: spanLaneMeta?.effectiveLaneCount ?? 1
         }
       }
 
       const pointLaneMeta = pointLaneLayout.laneMetadata.get(event.id)
+      const autoVisualLane = pointLaneMeta?.visualLane ?? 0
+      const visualLane = pointLaneOverrides.has(event.id)
+        ? pointLaneOverrides.get(event.id)
+        : autoVisualLane
+      const { laneRing, laneDirection } = visualLaneToRingAndDirection(visualLane)
+
       return {
         ...event,
         pointLaneIndex: pointLaneMeta?.laneIndex ?? 0,
-        pointVisualLane: pointLaneMeta?.visualLane ?? 0,
-        pointLaneRing: pointLaneMeta?.laneRing ?? 1,
-        pointLaneDirection: pointLaneMeta?.laneDirection ?? -1,
+        pointVisualLane: visualLane,
+        pointLaneRing: laneRing,
+        pointLaneDirection: laneDirection,
         pointLaneCount: pointLaneMeta?.laneCount ?? 1,
         pointEffectiveLaneCount: pointLaneMeta?.effectiveLaneCount ?? 1
       }
     })
-  }, [positionedEvents, spanLaneLayout.laneMetadata, pointLaneLayout.laneMetadata])
+  }, [
+    positionedEvents,
+    spanLaneLayout.laneMetadata,
+    pointLaneLayout.laneMetadata,
+    spanLaneOverrides,
+    pointLaneOverrides
+  ])
 
   const focusParentLaneEvent = useMemo(() => {
     if (!subFocusParentId) return null
@@ -780,6 +911,167 @@ const HistoryArrow = forwardRef(function HistoryArrow({
   const handleEventHover = (event) => {
     setHoveredEvent(event)
   }
+
+  const getLaneGapPx = useCallback((isSpan) => (
+    isIphoneViewport
+      ? (isSpan ? MOBILE_SPAN_LANE_GAP : MOBILE_POINT_LANE_GAP)
+      : (isSpan ? DESKTOP_SPAN_LANE_GAP : DESKTOP_POINT_LANE_GAP)
+  ), [isIphoneViewport])
+
+  const getMaxVisualLane = useCallback((isSpan) => {
+    const laneCap = isIphoneViewport
+      ? (isSpan ? IPHONE_MAX_SPAN_LANES : IPHONE_MAX_POINT_LANES)
+      : (isSpan ? DESKTOP_MAX_SPAN_LANES : DESKTOP_MAX_POINT_LANES)
+    const layoutCount = isSpan ? spanLaneLayout.effectiveLaneCount : pointLaneLayout.effectiveLaneCount
+    const overrides = isSpan ? spanLaneOverrides : pointLaneOverrides
+    let maxLane = Math.max(0, (layoutCount || 1) - 1)
+
+    laneAwareEvents.forEach((event) => {
+      if (event.isSpan !== isSpan) return
+      maxLane = Math.max(maxLane, isSpan ? event.spanVisualLane : event.pointVisualLane)
+    })
+    overrides.forEach((lane) => {
+      maxLane = Math.max(maxLane, lane)
+    })
+
+    return Math.min(maxLane, Math.max(0, laneCap - 1))
+  }, [
+    isIphoneViewport,
+    spanLaneLayout.effectiveLaneCount,
+    pointLaneLayout.effectiveLaneCount,
+    spanLaneOverrides,
+    pointLaneOverrides,
+    laneAwareEvents
+  ])
+
+  const applyLaneSwap = useCallback((eventId, isSpan, fromLane, toLane) => {
+    if (fromLane === toLane) return
+
+    const setOverrides = isSpan ? setSpanLaneOverrides : setPointLaneOverrides
+    const peer = laneAwareEvents.find((event) => {
+      if (event.isSpan !== isSpan || event.id === eventId) return false
+      const visualLane = isSpan ? event.spanVisualLane : event.pointVisualLane
+      return visualLane === toLane
+    })
+
+    setOverrides((previous) => {
+      const next = new Map(previous)
+      if (peer) {
+        next.set(peer.id, fromLane)
+      }
+      next.set(eventId, toLane)
+      return next
+    })
+  }, [laneAwareEvents])
+
+  const handleLaneDragStart = useCallback((event, startClientY) => {
+    if (!enableLaneDrag) return
+
+    const startVisualLane = event.isSpan ? event.spanVisualLane : event.pointVisualLane
+    const nextDrag = {
+      eventId: event.id,
+      isSpan: event.isSpan,
+      startVisualLane,
+      startClientY,
+      currentClientY: startClientY
+    }
+    laneDragRef.current = nextDrag
+    setLaneDrag(nextDrag)
+  }, [enableLaneDrag])
+
+  const handleLaneDragMove = useCallback((_, clientY) => {
+    setLaneDrag((previous) => {
+      if (!previous) return null
+      const nextDrag = { ...previous, currentClientY: clientY }
+      laneDragRef.current = nextDrag
+      return nextDrag
+    })
+  }, [])
+
+  const handleLaneDragEnd = useCallback((event) => {
+    const drag = laneDragRef.current
+    if (!drag || drag.eventId !== event.id) return
+
+    const gap = getLaneGapPx(drag.isSpan)
+    const maxVisualLane = getMaxVisualLane(drag.isSpan)
+    const dragOffsetPx = drag.currentClientY - drag.startClientY
+    const targetOffsetPx = visualLaneToOffsetPx(drag.startVisualLane, gap) + dragOffsetPx
+    const targetVisualLane = snapOffsetPxToVisualLane(targetOffsetPx, gap, maxVisualLane)
+
+    applyLaneSwap(drag.eventId, drag.isSpan, drag.startVisualLane, targetVisualLane)
+    laneDragRef.current = null
+    setLaneDrag(null)
+  }, [applyLaneSwap, getLaneGapPx, getMaxVisualLane])
+
+  const handleTimelineBackgroundPickerChange = useCallback((event) => {
+    const color = normalizeHexColor(event.target.value)
+    if (!color) return
+    const nextColor = color === DEFAULT_TIMELINE_BG_COLOR ? null : color
+    setTimelineBackgroundColor(nextColor)
+    setTimelineBackgroundHexInput(color)
+    setTimelineBackgroundError('')
+  }, [])
+
+  const commitTimelineBackgroundHex = useCallback(() => {
+    const color = normalizeHexColor(timelineBackgroundHexInput)
+    if (!color) {
+      setTimelineBackgroundError('Use a valid hex color like #141425')
+      setTimelineBackgroundHexInput(timelineBackgroundColor || DEFAULT_TIMELINE_BG_COLOR)
+      return
+    }
+
+    const nextColor = color === DEFAULT_TIMELINE_BG_COLOR ? null : color
+    setTimelineBackgroundColor(nextColor)
+    setTimelineBackgroundHexInput(color)
+    setTimelineBackgroundError('')
+  }, [timelineBackgroundColor, timelineBackgroundHexInput])
+
+  const handleTimelineBackgroundHexChange = useCallback((event) => {
+    setTimelineBackgroundHexInput(event.target.value)
+    setTimelineBackgroundError('')
+  }, [])
+
+  const handleTimelineBackgroundHexKeyDown = useCallback((event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      commitTimelineBackgroundHex()
+    }
+  }, [commitTimelineBackgroundHex])
+
+  const applyEventLabelScalePercent = useCallback((percentValue) => {
+    const parsed = Number(percentValue)
+    if (!Number.isFinite(parsed)) {
+      setEventLabelScaleError('Use a whole number between 70 and 150')
+      setEventLabelScaleInput(String(Math.round(eventLabelScale * 100)))
+      return
+    }
+
+    const clampedPercent = Math.min(150, Math.max(70, Math.round(parsed)))
+    const nextScale = clampEventLabelScale(clampedPercent / 100)
+    setEventLabelScale(nextScale)
+    setEventLabelScaleInput(String(Math.round(nextScale * 100)))
+    setEventLabelScaleError('')
+  }, [eventLabelScale])
+
+  const handleEventLabelScaleSliderChange = useCallback((event) => {
+    applyEventLabelScalePercent(event.target.value)
+  }, [applyEventLabelScalePercent])
+
+  const handleEventLabelScaleInputChange = useCallback((event) => {
+    setEventLabelScaleInput(event.target.value)
+    setEventLabelScaleError('')
+  }, [])
+
+  const commitEventLabelScaleInput = useCallback(() => {
+    applyEventLabelScalePercent(eventLabelScaleInput)
+  }, [applyEventLabelScalePercent, eventLabelScaleInput])
+
+  const handleEventLabelScaleInputKeyDown = useCallback((event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      commitEventLabelScaleInput()
+    }
+  }, [commitEventLabelScaleInput])
 
   // Handle view changes from the minimap
   const handleViewChange = useCallback((newStart, newEnd) => {
@@ -1480,6 +1772,69 @@ const HistoryArrow = forwardRef(function HistoryArrow({
                 </svg>
                 Reset View
               </button>
+              <div className="timeline-bg-control">
+                <label className="timeline-bg-label" htmlFor="timeline-bg-picker">
+                  Background
+                </label>
+                <div className="timeline-bg-row">
+                  <input
+                    id="timeline-bg-picker"
+                    className="timeline-bg-picker"
+                    type="color"
+                    value={timelineBackgroundColor || DEFAULT_TIMELINE_BG_COLOR}
+                    onChange={handleTimelineBackgroundPickerChange}
+                    aria-label="Pick timeline background color"
+                  />
+                  <input
+                    className="timeline-bg-hex"
+                    type="text"
+                    value={timelineBackgroundHexInput}
+                    onChange={handleTimelineBackgroundHexChange}
+                    onBlur={commitTimelineBackgroundHex}
+                    onKeyDown={handleTimelineBackgroundHexKeyDown}
+                    placeholder="#141425"
+                    spellCheck={false}
+                    aria-label="Timeline background hex color"
+                  />
+                </div>
+                {timelineBackgroundError && (
+                  <span className="timeline-bg-error">{timelineBackgroundError}</span>
+                )}
+              </div>
+              <div className="timeline-bg-control">
+                <label className="timeline-bg-label" htmlFor="timeline-label-size-slider">
+                  Label size
+                </label>
+                <div className="timeline-bg-row timeline-label-size-row">
+                  <input
+                    id="timeline-label-size-slider"
+                    className="timeline-label-size-slider"
+                    type="range"
+                    min={MIN_EVENT_LABEL_SCALE * 100}
+                    max={MAX_EVENT_LABEL_SCALE * 100}
+                    step="5"
+                    value={Math.round(eventLabelScale * 100)}
+                    onChange={handleEventLabelScaleSliderChange}
+                    aria-label="Event label size"
+                  />
+                  <input
+                    className="timeline-label-size-input"
+                    type="number"
+                    min={MIN_EVENT_LABEL_SCALE * 100}
+                    max={MAX_EVENT_LABEL_SCALE * 100}
+                    step="5"
+                    value={eventLabelScaleInput}
+                    onChange={handleEventLabelScaleInputChange}
+                    onBlur={commitEventLabelScaleInput}
+                    onKeyDown={handleEventLabelScaleInputKeyDown}
+                    aria-label="Event label size percent"
+                  />
+                  <span className="timeline-label-size-suffix">%</span>
+                </div>
+                {eventLabelScaleError && (
+                  <span className="timeline-bg-error">{eventLabelScaleError}</span>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -1635,6 +1990,16 @@ const HistoryArrow = forwardRef(function HistoryArrow({
                       labelColor={eventLabelColor}
                       spanLongHoverMs={event.isSpan ? SPAN_SUB_FOCUS_HOVER_MS : null}
                       onSpanLongHoverComplete={event.isSpan ? handleSpanSubFocusComplete : null}
+                      enableVerticalDrag={enableLaneDrag}
+                      isLaneDragging={laneDrag?.eventId === event.id}
+                      verticalDragOffsetPx={
+                        laneDrag?.eventId === event.id
+                          ? laneDrag.currentClientY - laneDrag.startClientY
+                          : 0
+                      }
+                      onLaneDragStart={handleLaneDragStart}
+                      onLaneDragMove={handleLaneDragMove}
+                      onLaneDragEnd={handleLaneDragEnd}
                     />
                   )
                 })}

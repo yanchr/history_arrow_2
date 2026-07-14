@@ -569,6 +569,7 @@ function Game() {
             onGameGuessPlace={handleGuessPlace}
             onTimelineClick={handleTimelineBackgroundClick}
             deferTimelineClickForDoubleZoom={isGuessingPhase && !isRevealed}
+            enableLaneDrag={false}
           />
         )}
       </motion.section>
